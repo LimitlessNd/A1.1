@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common'; // <-- needed for *ngIf
+import { Router } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule],  // Import FormsModule for ngModel
+  imports: [FormsModule, CommonModule, HttpClientModule], // <-- include CommonModule
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -14,24 +16,25 @@ export class LoginComponent {
   password = '';
   error = false;
 
-  users = [
-    { email: 'user1@example.com', password: '123' },
-    { email: 'user2@example.com', password: 'abc' },
-    { email: 'user3@example.com', password: 'password' }
-  ];
-
-  constructor(private router: Router) {}
+  constructor(private router: Router, private http: HttpClient) {}
 
   login() {
-    const validUser = this.users.find(
-      u => u.email === this.email && u.password === this.password
-    );
-
-    if (validUser) {
-      this.error = false;
-      this.router.navigate(['/account']);
-    } else {
-      this.error = true;
-    }
+    this.http.post<any>('http://localhost:3000/api/auth', {
+      email: this.email,
+      password: this.password
+    }).subscribe({
+      next: (user) => {
+        if (user.valid) {
+          this.error = false;
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          this.router.navigate(['/account']);
+        } else {
+          this.error = true;
+        }
+      },
+      error: () => {
+        this.error = true;
+      }
+    });
   }
 }

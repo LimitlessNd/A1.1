@@ -1,5 +1,15 @@
-<p>account works!</p>
-<div class="text-center mt-5">
-  <h2>Account</h2>
-  <img src="https://via.placeholder.com/150" alt="Profile Picture" class="rounded mt-3">
+<div *ngIf="user.username">
+  <h2>Edit Account</h2>
+  <form (ngSubmit)="saveAccount()">
+    <label>Username:</label>
+    <input [(ngModel)]="user.username" name="username" />
+
+    <label>Age:</label>
+    <input [(ngModel)]="user.age" type="number" name="age" />
+
+    <label>Email:</label>
+    <input [(ngModel)]="user.email" name="email" />
+
+    <button type="submit">Save</button>
+  </form>
 </div>
