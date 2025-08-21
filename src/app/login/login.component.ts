@@ -27,7 +27,7 @@ export class LoginComponent {
         if (user.valid) {
           this.error = false;
           localStorage.setItem('currentUser', JSON.stringify(user));
-          this.router.navigate(['/account']);
+          this.router.navigate(['/home']);
         } else {
           this.error = true;
         }

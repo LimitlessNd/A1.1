@@ -1,15 +1,51 @@
-<div *ngIf="user.username">
-  <h2>Edit Account</h2>
-  <form (ngSubmit)="saveAccount()">
-    <label>Username:</label>
-    <input [(ngModel)]="user.username" name="username" />
+<div class="container mt-5" *ngIf="user.username">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">Edit Account</h3>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="saveAccount()">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input
+                id="username"
+                [(ngModel)]="user.username"
+                name="username"
+                class="form-control"
+                placeholder="Enter your username"
+              />
+            </div>
 
-    <label>Age:</label>
-    <input [(ngModel)]="user.age" type="number" name="age" />
+            <div class="mb-3">
+              <label for="age" class="form-label">Age</label>
+              <input
+                id="age"
+                type="number"
+                [(ngModel)]="user.age"
+                name="age"
+                class="form-control"
+                placeholder="Enter your age"
+              />
+            </div>
 
-    <label>Email:</label>
-    <input [(ngModel)]="user.email" name="email" />
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input
+                id="email"
+                type="email"
+                [(ngModel)]="user.email"
+                name="email"
+                class="form-control"
+                placeholder="Enter your email"
+              />
+            </div>
 
-    <button type="submit">Save</button>
-  </form>
+            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

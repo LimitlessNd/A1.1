@@ -1,7 +1,31 @@
-<div class="d-flex justify-content-end p-3 bg-light shadow-sm">
-  <button class="btn btn-danger" *ngIf="isLoggedIn()" (click)="logout()">
-    Logout
-  </button>
-</div>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container-fluid">
+    <!-- App Name / Logo -->
+    <a class="navbar-brand" routerLink="/home">Chat App</a>
+
+    <!-- Toggle button for smaller screens -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Nav Links + User Info -->
+    <div class="collapse navbar-collapse" id="navbarNav" *ngIf="isLoggedIn()">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/home" routerLinkActive="active">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/account" routerLinkActive="active">Account</a>
+        </li>
+      </ul>
+
+      <span class="navbar-text me-3">
+        Logged in as: <strong>{{ username }}</strong> (Role: <strong>{{ role }}</strong>)
+      </span>
+      <button class="btn btn-outline-light" (click)="logout()">Logout</button>
+    </div>
+  </div>
+</nav>
 
 <router-outlet></router-outlet>
