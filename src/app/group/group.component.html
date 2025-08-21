@@ -1,0 +1,39 @@
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-4" *ngFor="let group of visibleGroups">
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">{{ group.name }}</h5>
+          <p class="card-text"><strong>Admin:</strong> {{ group.groupAdmin }}</p>
+
+          <!-- Edit Group button only visible if user can edit -->
+          <button class="btn btn-outline-primary btn-sm"
+                  *ngIf="canEdit(group)"
+                  (click)="editGroup(group)">
+            Edit Group
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Group Panel -->
+  <div *ngIf="selectedGroup" class="mt-4">
+    <h4>Edit Members of {{ selectedGroup.name }}</h4>
+
+    <label>Select Member to Remove:</label>
+    <select class="form-select mb-2" [(ngModel)]="selectedMember">
+      <option *ngFor="let member of selectedGroup.members" [value]="member">{{ member }}</option>
+    </select>
+
+    <button class="btn btn-danger"
+            (click)="removeMember()"
+            [disabled]="!selectedMember || !canEdit(selectedGroup)">
+      Remove Member
+    </button>
+
+    <p *ngIf="!canEdit(selectedGroup)" class="text-danger mt-2">
+      Only the group admin or super admin can remove members.
+    </p>
+  </div>
+</div>
