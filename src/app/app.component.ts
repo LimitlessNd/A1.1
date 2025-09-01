@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterOutlet, RouterModule } from '@angular/router'; // <-- add RouterModule
+import { Router, RouterOutlet, RouterModule, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet], // <-- include RouterModule
+  imports: [CommonModule, RouterModule, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
@@ -17,6 +18,13 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUser();
+
+    // 👇 Reload user info on every route change
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.loadUser();
+      });
   }
 
   loadUser() {
@@ -41,4 +49,9 @@ export class AppComponent implements OnInit {
   isLoggedIn(): boolean {
     return !!localStorage.getItem('currentUser');
   }
+  resetApp() {
+  localStorage.clear();
+  location.reload(); // force reload so defaults load again
+}
+
 }

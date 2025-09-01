@@ -44,6 +44,35 @@ app.post('/api/auth', (req, res) => {
     return res.json({ valid: false });
 });
 
+// Get all users
+app.get('/api/users', (req, res) => {
+    // return only id and username
+    const userList = users.map(u => ({ id: u.id, username: u.username }));
+    res.json(userList);
+});
+
+app.post('/api/register', (req, res) => {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ message: 'All fields are required.' });
+    }
+
+    const exists = users.find(u => u.email === email || u.username === username);
+    if (exists) {
+        return res.status(400).json({ message: 'Username or email already exists.' });
+    }
+
+    const newId = 'u' + (users.length + 1);
+    const newUser = new User(newId, username, email, password);
+    users.push(newUser);
+
+    return res.json({
+        message: 'User registered successfully!',
+        user: { id: newId, username, email }
+    });
+});
+
 app.listen(3000, () => {
     console.log('✅ Server running on http://localhost:3000');
 });

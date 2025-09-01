@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common'; // <-- needed for *ngIf
-import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common'; 
+import { Router, RouterModule } from '@angular/router'; // ✅ add RouterModule
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, CommonModule, HttpClientModule], // <-- include CommonModule
+  imports: [FormsModule, CommonModule, HttpClientModule, RouterModule], // ✅ include RouterModule
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
