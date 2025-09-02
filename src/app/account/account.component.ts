@@ -29,7 +29,7 @@ export class AccountComponent implements OnInit {
     // Save updated user to localStorage
     localStorage.setItem('currentUser', JSON.stringify(this.user));
 
-    // Optionally update on the server
+    //  update on the server
     this.http.put(`http://localhost:3000/api/user`, this.user).subscribe({
       next: () => alert('Account updated successfully!'),
       error: () => alert('Failed to update account on server.')

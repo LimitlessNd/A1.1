@@ -7,7 +7,7 @@ import { RouterModule, Router } from '@angular/router';
 @Component({
   selector: 'app-user-registration',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, RouterModule], // import modules needed for forms, HTTP and routing
+  imports: [CommonModule, FormsModule, HttpClientModule, RouterModule], 
   templateUrl: './user-registration.component.html',
   styleUrls: ['./user-registration.component.css']
 })

@@ -16,7 +16,7 @@ app.use(express.json());
 
 // 🔐 Session setup
 app.use(session({
-  secret: 'super-secret-key', // change to a strong secret in production
+  secret: 'super-secret-key', 
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false } // true if using HTTPS

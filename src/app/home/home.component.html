@@ -3,10 +3,24 @@
   <div class="jumbotron bg-light p-5 rounded shadow-sm text-center mb-5">
     <h1 class="display-4">Welcome to Chat App!</h1>
     <p class="lead">Connect with your groups and friends in real-time.</p>
-  <a class="btn btn-primary btn-lg mt-3" [routerLink]="['/group']">Go to Groups</a>
-
-
+    <a class="btn btn-primary btn-lg mt-3" [routerLink]="['/group']">Go to Groups</a>
   </div>
+
+<!-- Remove User Section (Only for SUPER_ADMIN) -->
+<div *ngIf="isSuperAdmin()" class="mt-5 p-4 bg-light rounded shadow-sm">
+  <h4>Remove User</h4>
+  <div class="row g-2 align-items-center">
+    <div class="col-md-6">
+      <select class="form-select" [(ngModel)]="selectedUserId">
+        <option value="" disabled selected>Select a user</option>
+        <option *ngFor="let user of users" [value]="user.id">{{ user.username }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-danger w-100" (click)="removeUser()">Remove</button>
+    </div>
+  </div>
+</div>
 
   <!-- Info Cards -->
   <div class="row g-4">
