@@ -14,6 +14,5 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent, title: 'Login' },
   { path: 'account', component: AccountComponent, title: 'Account' },
   { path: 'group', component: GroupComponent, title: "Group" },
-  // New route for channels inside a group
   { path: 'groups/:groupId/channels', component: ChannelComponent, title: 'Channels' },
 ];

@@ -7,6 +7,7 @@
         </div>
         <div class="card-body">
           <form (ngSubmit)="saveAccount()">
+            <!-- Username -->
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
               <input
@@ -15,21 +16,11 @@
                 name="username"
                 class="form-control"
                 placeholder="Enter your username"
+                required
               />
             </div>
 
-            <div class="mb-3">
-              <label for="age" class="form-label">Age</label>
-              <input
-                id="age"
-                type="number"
-                [(ngModel)]="user.age"
-                name="age"
-                class="form-control"
-                placeholder="Enter your age"
-              />
-            </div>
-
+            <!-- Email -->
             <div class="mb-3">
               <label for="email" class="form-label">Email</label>
               <input
@@ -39,10 +30,11 @@
                 name="email"
                 class="form-control"
                 placeholder="Enter your email"
+                required
               />
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+            <button type="submit" class="btn btn-success w-100">Save Changes</button>
           </form>
         </div>
       </div>

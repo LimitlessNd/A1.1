@@ -1,4 +1,7 @@
-<div class="container mt-5" style="max-width: 400px;">
+<div class="container mt-5 p-4 rounded shadow"
+     [ngClass]="{ 'border border-success bg-light': successMessage }"
+     style="max-width: 400px;">
+
   <h3 class="mb-3">Register</h3>
 
   <div *ngIf="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
