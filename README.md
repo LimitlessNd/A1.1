@@ -196,8 +196,24 @@ Defines navigation and access control.
 | `saveGroups()` (in front-end logic) | Saves group data to localStorage (server interaction planned for Phase 2) |
 
 ---
+## 3️⃣ Common Functions
 
-## 3️⃣ Files
+| Function                     | Responsibility                                                                 |
+|-------------------------------|-------------------------------------------------------------------------------|
+| `updateVisibleGroups()`       | Updates the list of groups visible to the current user based on role/membership |
+| `canEdit(group)`              | Checks if the current user can edit a given group (SUPER_ADMIN or groupAdmin)  |
+| `createGroup()`               | Creates a new group and saves it to localStorage                                |
+| `removeGroup(groupId)`        | Deletes a group if the user has permission                                      |
+| `leaveGroup(groupId)`         | Removes current user from group members and admins                              |
+| `addMember()`                 | Adds a new member to a group if permitted                                       |
+| `removeMember()`              | Removes a selected member from a group if permitted                             |
+| `makeGroupAdmin()`            | Promotes a member to group admin (only SUPER_ADMIN)                             |
+| `getUsernameById(id)`         | Returns the username corresponding to a given user ID                            |
+| `saveGroups()`                | Saves the `groups` object to localStorage                                       |
+
+---
+
+## 4️⃣ Files
 
 | File                  | Responsibility                                                    |
 |-----------------------|------------------------------------------------------------------|
@@ -209,7 +225,7 @@ Defines navigation and access control.
 
 ---
 
-## 4️⃣ Global Variables
+## 5️⃣ Global Variables
 
 | Variable               | Type           | Purpose                                                         |
 |------------------------|---------------|-----------------------------------------------------------------|
@@ -221,7 +237,7 @@ Defines navigation and access control.
 
 ---
 
-## 5️⃣ Architecture Notes
+## 6️⃣ Architecture Notes
 
 - Phase 1 uses **hardcoded users** and **localStorage** for group data.
 - Phase 2 will move all persistent data to **MongoDB** and use **services** to interact with DB.
