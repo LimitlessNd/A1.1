@@ -63,7 +63,7 @@ Each user has a unique ID and role determining their permissions.
 
 ## 2. Groups
 
-Groups can have multiple admins, many members, and contain channels for chatting.
+Groups can have multiple admins, many members, and contain channels for chatting (many to many relationship).
 
 ### Groups Table
 
@@ -73,7 +73,7 @@ Groups can have multiple admins, many members, and contain channels for chatting
 | `name`        | string    | Display name of the group.                         |
 | `groupAdmins` | string[]  | Array of user IDs who are admins of the group.     |
 | `members`     | string[]  | Array of user IDs who are members of the group.    |
-| `channels`    | object[]  | Array of channels within the group (see Channels). |
+| `channels`    | object[]  | Array of channels within the group. |
 
 ### Example Groups
 
@@ -86,7 +86,7 @@ Groups can have multiple admins, many members, and contain channels for chatting
 
 ## 3. Channels
 
-Channels are sub-sections inside a group where conversations happen.
+Channels are sub-sections inside a group where conversations will eventually happen.
 
 ### Channels Table
 
@@ -113,11 +113,11 @@ These handle the UI and user interactions.
 |-------------------------------|-------------------------------------------------------------------------------|
 | `HomeComponent`               | Landing page, welcomes users, provides link to groups                          |
 | `LoginComponent`              | Login form and authentication logic                                           |
-| `UserRegistrationComponent`   | User register form, validates input, calls backend to register                   |
+| `UserRegistrationComponent`   | User register form which validates input and calls backend to register                   |
 | `AccountComponent`            | View/edit account info (username/email), save changes locally and via backend  |
-| `GroupComponent`              | List groups, create/delete groups, manage members/admins                      |
-| `ChannelComponent`            | View group channels, add/edit/remove channels                                  |
-| `AppComponent`                | Root component, loads user info, handles logout and app-wide state             |
+| `GroupComponent`              | List, create, delete groups, manage members and admins                      |
+| `ChannelComponent`            | View group channels, add, edit and remove channels                                  |
+| `AppComponent`                | Root component, loads user info and handles logout           |
 
 ---
 
@@ -129,23 +129,23 @@ These handle data access and route protection.
 
 | Service / File      | Responsibility                                                   |
 |--------------------|-----------------------------------------------------------------|
-| `server.js`        | Node.js backend: handles routes for login, register, users, groups, channels |
-| `authGuard`        | Protects frontend routes that require a logged-in user          |
+| `server.js`        | Node.js backend: handles routes for login, register and users |
+| `authGuard`        | Protects frontend routes that require a logged-in user with AuthGuard          |
 
 ### Phase 2 (Planned Angular Services)
 
 | Service             | Responsibility                                                   |
 |--------------------|-----------------------------------------------------------------|
-| `AuthService`       | Handles login, logout, session management                        |
-| `UserService`       | Fetch users, register new users, update user info                |
-| `GroupService`      | Create/delete groups, manage members/admins                      |
-| `ChannelService`    | Manage channels inside groups                                     |
+| `AuthService`       | Handles login, logout and session management                        |
+| `UserService`       | Fetch users, register new users and ability to update the user info                |
+| `GroupService`      | Create and delete groups, manage members/admins                      |
+| `ChannelService`    | Manage channels inside each group                                     |
 
 ---
 
 ## 3️⃣ Models
 
-Define the shape of data in the app.
+Defining the shape of data within the app.
 
 | Model       | Fields / Description                                                                 |
 |------------|--------------------------------------------------------------------------------------|
@@ -157,7 +157,7 @@ Define the shape of data in the app.
 
 ## 4️⃣ Routes
 
-Defines navigation and access control.
+Defines navigation and access control within the app.
 
 | Path             | Component                  | Access / Notes                                    |
 |-----------------|----------------------------|--------------------------------------------------|
@@ -166,7 +166,7 @@ Defines navigation and access control.
 | `/register`      | `UserRegistrationComponent`| Public                                           |
 | `/account`       | `AccountComponent`        | Protected (logged-in users only, optionally via `authGuard`) |
 | `/group`         | `GroupComponent`          | Protected (members/admins; SUPER_ADMIN sees all)|
-| `/group/:groupId`| `ChannelComponent`        | Protected (members/admins; can edit channels if admin) |
+| `/group/:groupId`| `ChannelComponent`        | Protected (members/admins; can edit channels only if admin) |
 
 ---
 
@@ -176,11 +176,11 @@ Defines navigation and access control.
 
 | Module / Package        | Responsibility                                      |
 |------------------------|----------------------------------------------------|
-| `express`              | Web framework, handles routing and middleware      |
+| `express`              | Web framework that handles routing and middleware      |
 | `cors`                 | Enables Cross-Origin Resource Sharing             |
-| `express-session`      | Session management (stores login sessions)        |
-| `authGuard`            | Custom middleware to protect routes               |
-| `http` / `https`       | (Optional) Used to create server instances        |
+| `express-session`      | Session management that will store login sessions        |
+| `authGuard`            | Common middleware to protect routes               |
+| `http` / `https`       | Used to create server instances        |
 
 ---
 
@@ -192,23 +192,23 @@ Defines navigation and access control.
 | `app.get('/api/users')` | Returns all users; protected via `authGuard`                                     |
 | `app.post('/api/register')` | Registers a new user; checks for duplicates, adds to user array                  |
 | `app.post('/api/logout')`   | Logs out user by destroying session                                               |
-| `authGuard(req, res, next)` | Middleware that checks if session exists, allows route access if logged in       |
-| `saveGroups()` (in front-end logic) | Saves group data to localStorage (server interaction planned for Phase 2) |
+| `authGuard(req, res, next)` | Middleware that checks if session exists and allows route access if logged in       |
+| `saveGroups()` (front-end logic) | Saves group data to localStorage (server interaction planned for Phase 2) |
 
 ---
 ## 3️⃣ Common Functions
 
 | Function                     | Responsibility                                                                 |
 |-------------------------------|-------------------------------------------------------------------------------|
-| `updateVisibleGroups()`       | Updates the list of groups visible to the current user based on role/membership |
-| `canEdit(group)`              | Checks if the current user can edit a given group (SUPER_ADMIN or groupAdmin)  |
+| `updateVisibleGroups()`       | Updates the list of groups visible to the current user based on role |
+| `canEdit(group)`              | Checks if the current user can edit a group   |
 | `createGroup()`               | Creates a new group and saves it to localStorage                                |
-| `removeGroup(groupId)`        | Deletes a group if the user has permission                                      |
-| `leaveGroup(groupId)`         | Removes current user from group members and admins                              |
-| `addMember()`                 | Adds a new member to a group if permitted                                       |
-| `removeMember()`              | Removes a selected member from a group if permitted                             |
+| `removeGroup(groupId)`        | Deletes a group if the user has permission (GroupAdmin or SA)                                       |
+| `leaveGroup(groupId)`         | Removes the user from that specific group                                 |
+| `addMember()`                 | Adds a new member to a group (GroupAdmin or SuperAdmin)                                       |
+| `removeMember()`              | Removes a member from a group (GroupAdmin or SuperAdmin)                             |
 | `makeGroupAdmin()`            | Promotes a member to group admin (only SUPER_ADMIN)                             |
-| `getUsernameById(id)`         | Returns the username corresponding to a given user ID                            |
+| `getUsernameById(id)`         | Returns the username corresponding to the given user ID                            |
 | `saveGroups()`                | Saves the `groups` object to localStorage                                       |
 
 ---
@@ -217,10 +217,10 @@ Defines navigation and access control.
 
 | File                  | Responsibility                                                    |
 |-----------------------|------------------------------------------------------------------|
-| `server.js`           | Main server file; initializes Express, middleware, routes, and starts server |
-| `authGuard.js`        | Middleware to protect API routes requiring authentication        |
+| `server.js`           | Main server file; initializes Express, middleware, routes, and starts the node server |
+| `authGuard.js`        | Middleware to protect API routes that require a form of authentication        |
 | (Future) `userService.js` | Handles user data management, DB interactions (Phase 2)          |
-| (Future) `groupService.js`| Handles group data, members, channels (Phase 2)                 |
+| (Future) `groupService.js`| Handles group data, members and channels (Phase 2)                 |
 | (Future) `channelService.js` | Handles channel data within groups (Phase 2)                  |
 
 ---
@@ -232,29 +232,29 @@ Defines navigation and access control.
 | `users`                | Array<User>    | Stores all user objects (hardcoded in Phase 1)                 |
 | `groups`               | Object        | Stores group objects (localStorage on front-end; Phase 2 in DB)|
 | `app`                  | Express app   | Main Express application instance                               |
-| `session`              | Object        | Middleware configuration for storing session data             |
-| `req.session.user`     | Object        | Holds currently logged-in user info for a session             |
+| `session`              | Object        | Middleware for storing session data             |
+| `req.session.user`     | Object        | Holds the currently logged-in user info for the session             |
 
 ---
 
 ## 6️⃣ Architecture Notes
 
 - Phase 1 uses **hardcoded users** and **localStorage** for group data.
-- Phase 2 will move all persistent data to **MongoDB** and use **services** to interact with DB.
-- The server handles routing, authentication, and session management, while Angular front-end handles UI and state.
+- Phase 2 will move all persistent data to **MongoDB** and use **services** to interact with MongoDB.
+- The server handles routing, authentication, session management, whilst Angular front-end handles the UI and state.
 
 ---
 # Server-Side Routes – Chat Application
 
 | Route                   | Method | Parameters (Body / Query / Path)                | Return Value / Response                                               | Purpose / Description                                                  |
 |-------------------------|--------|-----------------------------------------------|----------------------------------------------------------------------|------------------------------------------------------------------------|
-| `/api/auth`             | POST   | Body: `{ email: string, password: string }`    | `{ id, username, email, role, valid: true }` if successful, or `{ valid: false }` | Authenticates a user and sets session data.                             |
+| `/api/auth`             | POST   | Body: `{ email: string, password: string }`    | `{ id, username, email, role, valid: true }` if successful, or `{ valid: false }` | Authenticates a user.                             |
 | `/api/users`            | GET    | None (protected by `authGuard`)               | Array of users: `[ { id: string, username: string } ]`               | Returns all registered users; only accessible if logged in.            |
-| `/api/register`         | POST   | Body: `{ username: string, email: string, password: string }` | `{ message: string, user: { id, username, email } }` on success, or 400 error `{ message: string }` | Registers a new user; checks for existing email/username.              |
-| `/api/logout`           | POST   | None                                          | `{ message: 'Logged out successfully' }`                             | Logs out a user by destroying their session.                            |
+| `/api/register`         | POST   | Body: `{ username: string, email: string, password: string }` | `{ message: string, user: { id, username, email } }` on success, or 400 error `{ message: string }` | Registers a new user; checks for an existing username or password and throws an error if so.
+| `/api/logout`           | POST   | None                                          | `{ message: 'Logged out successfully' }`                             | Logs out a user by stopping their session.                            |
 | (Future) `/api/user`    | PUT    | Body: `{ id, username, email, ... }`          | Updated user object or error                                           | Updates user profile data. (Phase 2: database integration)             |
-| (Future) `/api/group`   | POST/PUT/DELETE | Body / Path parameters for group data       | Updated group object or confirmation                                   | Handles creating, updating, and deleting groups.                        |
-| (Future) `/api/channel` | POST/PUT/DELETE | Body / Path parameters for channel data     | Updated channel object or confirmation                                 | Handles creating, updating, and deleting channels inside groups.        |
+| (Future) `/api/group`   | POST/PUT/DELETE | Body / Path parameters for group data       | Updated group object or confirmation                                   | Handles creating, updating, and deleting each group.                        |
+| (Future) `/api/channel` | POST/PUT/DELETE | Body / Path parameters for channel data     | Updated channel object or confirmation                                 | Supports creating, updating, and deleting channels inside each group.        |
 
 ---
 # Client-Server Interaction – Chat Application
@@ -263,7 +263,7 @@ Defines navigation and access control.
 The chat application uses a **Node.js server** with session management and a **standalone Angular frontend**.  
 Data is currently stored in **localStorage** (Phase 1) and will later be moved to **MongoDB** (Phase 2).
 
-Each Angular component interacts with the server through HTTP requests. The server processes requests, updates its internal data, and returns the result to the client. The Angular components then update the UI accordingly.
+All Angular components interact with the server through HTTP requests for phase 1. The server processes the requests and updates its stored data and then returns the result to the user. The Angular components will then update the UI.
 
 ---
 
@@ -276,16 +276,16 @@ Each Angular component interacts with the server through HTTP requests. The serv
 - HTTP request: `POST /api/auth` with `{ email, password }`
 
 ### Server
-- Checks if a user exists with the given credentials.
+- Checks if a user exists with through a search of the stored data.
 - If valid:
   - Sets `req.session.user` with user info.
   - Returns user data with `{ valid: true }`.
-- If invalid: returns `{ valid: false }`.
+- If invalid: returns `{ valid: false }` and will throw an error.
 
 ### Client UI Update
 - Stores the user data in `localStorage`.
-- Updates `AppComponent` to show logged-in username and role.
-- Navigates to `/home` or `/group`.
+- Updates `AppComponent` to show logged-in username and role in top right hand corner.
+- Navigates to the `/home` page.
 
 ---
 
@@ -298,15 +298,15 @@ Each Angular component interacts with the server through HTTP requests. The serv
 - HTTP request: `POST /api/register` with user info.
 
 ### Server
-- Validates required fields.
-- Checks for duplicate username/email.
-- Adds new user to the server’s in-memory `users` array.
-- Returns a success message with the newly created user.
+- The server then validates required fields.
+- Checks for duplicate username/email, if there is an error in any field there will be an error that is shown onscreen. 
+- Adds new user to the server’s memory `users` array.
+- Returns a success message which can then be used to log into their new account.
 
 ### Client UI Update
 - Displays a **success message** if registration succeeds.
-- Navigates user to the **login page**.
-- Displays **error messages** if registration fails.
+- Will show a login button when account has been created which takes them to the **login page**.
+- If any error in creation an **error messages**  will displays.
 
 ---
 
@@ -315,15 +315,18 @@ Each Angular component interacts with the server through HTTP requests. The serv
 ### Client
 - Component: `GroupComponent` (for SUPER_ADMIN)
 - Action: Loads the page.
-- HTTP request: `GET /api/users` (with session credentials)
+- HTTP request: `GET /api/users`
+- This is used to remove users from the site which will wipe them from the memory.  
 
 ### Server
 - Protected route via `authGuard`.
 - Returns a list of all users: `[ { id, username } ]`.
+- Only for the superAdmin to see.
 
 ### Client UI Update
 - Populates the `users` array in the component.
 - Updates dropdowns and member-selection UI in groups.
+- This is for editing the groups, members, promotion as a group admin or being removed from the group. 
 
 ---
 
@@ -336,17 +339,16 @@ Each Angular component interacts with the server through HTTP requests. The serv
   - **Add/Remove Members**
   - **Promote Admins**
   - **Delete Group**
-- Data updates in the component state and then saved in `localStorage` (Phase 1).
+- The Data is updated in the component state and saved in `localStorage` for (Phase 1).
 
 ### Server (Phase 2)
-- Client sends POST/PUT/DELETE requests to `/api/group`.
-- Server updates group objects in the database.
-- Returns the updated group object or confirmation.
+- Client sends POST/PUT/DELETE requests to the newly created `/api/group`.
+- Server updates group objects in the database through mongoDB.
+- Returns the updated group object.
 
 ### Client UI Update
 - Refreshes `visibleGroups` array.
-- Updates group list and selected group panel in the UI.
-- Shows alerts/confirmation messages when necessary.
+- Updates groups and the selected group panel.
 
 ---
 
@@ -355,18 +357,18 @@ Each Angular component interacts with the server through HTTP requests. The serv
 ### Client
 - Component: `ChannelComponent`
 - Actions:
-  - **Add/Edit/Remove Channels** within a group
+  - **Add/Edit/Remove Channels** within a group.
 - Updates group object in `localStorage` (Phase 1).
 
 ### Server (Phase 2)
-- Client sends POST/PUT/DELETE requests to `/api/channel`.
-- Server updates channels in the group object in database.
-- Returns updated group or channel data.
+- Client sends POST/PUT/DELETE requests to `/api/channel` (same way as the groups).
+- Server updates channels in the group object within the database.
+- Returns updated group and the new channel data.
 
 ### Client UI Update
 - Refreshes `channels` array in the selected group.
-- Updates the channel list in the component dynamically.
-- Allows or restricts editing based on user role.
+- Updates the channel list in the component.
+- It will only allow group admins and the SuperAdmin to edit.
 
 ---
 
@@ -378,21 +380,20 @@ Each Angular component interacts with the server through HTTP requests. The serv
 - HTTP request: `POST /api/logout`
 
 ### Server
-- Destroys the user session.
-- Returns a success message.
+- Stops the user session.
 
 ### Client UI Update
-- Clears `localStorage` of user info.
-- Updates UI to show logged-out state.
-- Navigates user to `/login`.
+- Clears all `localStorage` of user info.
+- Updates the UI which shows a new logged-out state.
+- Navigates user to an empty `/login` page.
 
 ---
 
 ## Summary of Angular Data Flow
 
 1. **Components** hold the local state (`users`, `groups`, `channels`, `currentUser`).
-2. **HTTP requests** modify server-side data.
+2. **HTTP requests** modify most server-side data.
 3. **Server response** updates the local component state.
-4. UI updates **automatically via Angular's data binding**.
-5. `localStorage` ensures persistence across page reloads (Phase 1).
+4. UI updates
+5. Implementation of `localStorage` ensures persistence across page reloads (Phase 1).
 
