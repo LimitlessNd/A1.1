@@ -100,4 +100,7 @@ fetchGroup(groupId: string) {
         });
     }
   }
+  goToChannel(channelId: string) {
+  this.router.navigate(['/groups', this.groupId, 'channels', channelId]);
+}
 }

@@ -5,6 +5,8 @@ import { AccountComponent } from './account/account.component';
 import { HomeComponent } from './home/home.component';
 import { ChannelComponent } from './channel/channel.component'; // import the new component
 import { UserRegistrationComponent } from './user-registration/user-registration.component';
+import { ChannelViewComponent } from './channel-view/channel-view.component';
+
 
 
 export const routes: Routes = [
@@ -15,4 +17,5 @@ export const routes: Routes = [
   { path: 'account', component: AccountComponent, title: 'Account' },
   { path: 'group', component: GroupComponent, title: "Group" },
   { path: 'groups/:groupId/channels', component: ChannelComponent, title: 'Channels' },
+  { path: 'groups/:groupId/channels/:channelId', component: ChannelViewComponent, title: 'Channel' }
 ];

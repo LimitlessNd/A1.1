@@ -1,29 +1,33 @@
 <!-- Channels Section -->
-<div class="mt-3">
-  <h6>Channels</h6>
+<div class="channels-container mt-3">
+  <h6 class="section-title">Channels</h6>
 
-  <!-- Channel list -->
-  <ul class="list-group mb-2">
-    <li class="list-group-item d-flex justify-content-between align-items-center"
-        *ngFor="let channel of channels">
-      {{ channel.name }} - {{ channel.description }}
-      <button class="btn btn-sm btn-danger"
+  <!-- Channel cards -->
+  <div class="channels-grid">
+    <div *ngFor="let channel of channels"
+         class="channel-card"
+         (click)="goToChannel(channel._id || channel.id)">
+      
+      <div class="channel-info">
+        <h5>{{ channel.name }}</h5>
+        <p>{{ channel.description }}</p>
+      </div>
+
+      <button class="btn btn-danger btn-sm delete-btn"
               *ngIf="canEdit()"
-              (click)="deleteChannel(channel._id)">
+              (click)="deleteChannel(channel._id || channel.id); $event.stopPropagation()">
         Delete
       </button>
-    </li>
-  </ul>
+    </div>
+  </div>
 
   <!-- Create new channel (admins only) -->
-  <div *ngIf="canEdit()">
-    <input type="text" class="form-control mb-1" placeholder="Channel name"
-           [(ngModel)]="newChannelName">
-    <input type="text" class="form-control mb-1" placeholder="Channel description"
-           [(ngModel)]="newChannelDesc">
-    <button class="btn btn-success btn-sm w-100"
-            (click)="createChannel()">
-      Add Channel
-    </button>
+  <div *ngIf="canEdit()" class="create-channel mt-3">
+    <h6 class="form-title">Add New Channel</h6>
+    <div class="form-inputs">
+      <input type="text" placeholder="Channel name" [(ngModel)]="newChannelName">
+      <input type="text" placeholder="Channel description" [(ngModel)]="newChannelDesc">
+    </div>
+    <button class="btn btn-add" (click)="createChannel()">+ Add Channel</button>
   </div>
 </div>

@@ -1,0 +1,14 @@
+<div class="chat-container">
+  <h3>Channel Chat</h3>
+  <div class="messages" style="height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
+    <div *ngFor="let msg of messages">
+      <span *ngIf="!msg.system"><strong>{{ msg.username }}:</strong> {{ msg.message }}</span>
+      <em *ngIf="msg.system">{{ msg.message }}</em>
+    </div>
+  </div>
+
+  <div class="input-group mt-2">
+    <input type="text" [(ngModel)]="newMessage" placeholder="Type a message..." class="form-control">
+    <button (click)="sendMessage()" class="btn btn-primary">Send</button>
+  </div>
+</div>
