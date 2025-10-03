@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
@@ -12,232 +12,119 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   styleUrls: ['./group.component.css']
 })
 export class GroupComponent implements OnInit {
-  groups: { [key: string]: any } = {};  // Store groups as object
-  visibleGroups: any[] = [];            // Groups visible to the current user
-  users: any[] = [];                     // All users fetched from backend
-  selectedGroup: any = null;             // Group currently being edited
-  selectedMember: string = '';           // Selected member for removal
-  selectedNewAdmin: string = '';         // Selected member for admin promotion
-  currentUser: any = null;               // Currently logged-in user
-  newGroupName: string = '';             // Input for creating a new group
-  newMember: string = '';                // Input for adding a new member
+  groups: any[] = [];
+  users: any[] = [];
+  currentUser: any = null;
+  newGroupName: string = '';
+  selectedGroup: any = null;
+  newMember: string = '';
+  selectedNewAdmin: string = '';
 
-  constructor(private http: HttpClient) {}
+  backendUrl = 'http://localhost:3000/api';
+
+  constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
-    // Load current user from localStorage
-    this.currentUser = JSON.parse(localStorage.getItem('currentUser')!);
-
-    // Load groups from localStorage
-    const savedGroups = localStorage.getItem('groups');
-    if (savedGroups) {
-      const loadedGroups = JSON.parse(savedGroups);
-
-      // Convert old array format to object if needed
-      if (Array.isArray(loadedGroups)) {
-        this.groups = {};
-        loadedGroups.forEach((g: any) => {
-          this.groups[g.id] = { ...g };
-          if (!this.groups[g.id].channels) this.groups[g.id].channels = [];
-        });
-        this.saveGroups();
-      } else {
-        this.groups = loadedGroups;
-      }
-
-      // Ensure every group has groupAdmins and channels
-      Object.values(this.groups).forEach((g: any) => {
-        if (!g.groupAdmins) {
-          if (g.groupAdmin) {
-            g.groupAdmins = Array.isArray(g.groupAdmin) ? g.groupAdmin : [g.groupAdmin];
-            delete g.groupAdmin;
-          } else {
-            g.groupAdmins = [];
-          }
-        }
-        if (!g.channels) g.channels = [];
-      });
-
-    } else {
-      // Default groups if none exist
-      this.groups = {
-        g1: { 
-          id: 'g1',
-          name: 'Demo Group 1', 
-          groupAdmins: ['u2'], 
-          members: ['u3', 'u4', 'u5'], 
-          channels: [{ id: 'c1', name: 'General' }] 
-        },
-        g2: { 
-          id: 'g2',
-          name: 'Demo Group 2', 
-          groupAdmins: ['u5'], 
-          members: ['u5', 'u4'], 
-          channels: [{ id: 'c1', name: 'General' }] 
-        }
-      };
-      this.saveGroups();
-    }
-
-    // Fetch all users from backend
-    this.http.get<any[]>('http://localhost:3000/api/users', { withCredentials: true })
+    this.http.get<any>(`${this.backendUrl}/user/current`, { withCredentials: true })
       .subscribe({
-        next: (data) => {
-          this.users = data;
-          this.updateVisibleGroups();
+        next: (user) => {
+          this.currentUser = user;
+          this.fetchGroups();
+          this.fetchUsers();
         },
-        error: (err) => {
-          console.error('Failed to fetch users:', err);
-        }
+        error: () => this.router.navigate(['/login'])
       });
-
-    this.updateVisibleGroups();
   }
 
-  // Update the list of groups visible to the current user
-  updateVisibleGroups() {
-    const allGroups = Object.entries(this.groups).map(([id, group]) => ({ id, ...group }));
-    if (!this.currentUser) return;
-
-    // SUPER_ADMIN sees all groups, others see only their groups
-    if (this.currentUser.role === 'SUPER_ADMIN') {
-      this.visibleGroups = allGroups;
-    } else {
-      this.visibleGroups = allGroups.filter(group =>
-        group.members.includes(this.currentUser.id) || 
-        (group.groupAdmins && group.groupAdmins.includes(this.currentUser.id))
-      );
-    }
+  fetchGroups() {
+    this.http.get<any[]>(`${this.backendUrl}/groups`, { withCredentials: true })
+      .subscribe({
+        next: (groups) => {
+          this.groups = groups.filter(g => g.members.includes(this.currentUser._id));
+        },
+        error: (err) => console.error(err)
+      });
   }
 
-  // Open edit panel for a group
-  editGroup(group: any) {
-    this.selectedGroup = group;
-    this.selectedMember = '';
-    this.selectedNewAdmin = '';
+  fetchUsers() {
+    this.http.get<any[]>(`${this.backendUrl}/users`, { withCredentials: true })
+      .subscribe(users => this.users = users, err => console.error(err));
   }
 
-  // Promote a member to group admin (only SUPER_ADMIN allowed)
-  makeGroupAdmin() {
-    if (!this.selectedGroup || !this.selectedNewAdmin) return;
-
-    if (this.currentUser.role !== 'SUPER_ADMIN') {
-      alert('Only the SUPER_ADMIN can promote group admins.');
-      return;
-    }
-
-    if (!this.selectedGroup.groupAdmins.includes(this.selectedNewAdmin)) {
-      this.selectedGroup.groupAdmins.push(this.selectedNewAdmin);
-    }
-
-    this.saveGroups();
-    this.updateVisibleGroups();
-    this.selectedGroup = this.groups[this.selectedGroup.id];
-    this.selectedNewAdmin = '';
+  isAdmin(group: any) {
+    return this.currentUser.roles.includes('SUPER_ADMIN') || group.groupAdmins.includes(this.currentUser._id);
   }
 
-  // Check if current user can edit a group
-  canEdit(group: any): boolean {
-    return (
-      this.currentUser.role === 'SUPER_ADMIN' ||
-      (group.groupAdmins && group.groupAdmins.includes(this.currentUser.id))
-    );
-  }
-
-  // Create a new group
   createGroup() {
     if (!this.newGroupName.trim()) return;
 
-    const newGroupId = 'g' + (Object.keys(this.groups).length + 1);
-    this.groups[newGroupId] = {
-      id: newGroupId,
+    const newGroup = {
       name: this.newGroupName,
-      groupAdmins: [this.currentUser.id],
-      members: [this.currentUser.id],
-      channels: []
+      groupAdmins: [this.currentUser._id],
+      members: [this.currentUser._id]
     };
 
-    this.saveGroups();
-    this.updateVisibleGroups();
-    this.newGroupName = '';
+    this.http.post(`${this.backendUrl}/groups`, newGroup, { withCredentials: true })
+      .subscribe(() => {
+        this.newGroupName = '';
+        this.fetchGroups();
+      });
   }
 
-  // Remove a group
-  removeGroup(groupId: string) {
-    const group = this.groups[groupId];
-    if (!group) return;
-
-    if (this.currentUser.role === 'SUPER_ADMIN' ||
-        (group.groupAdmins && group.groupAdmins.includes(this.currentUser.id))) {
-      if (confirm(`Are you sure you want to delete group "${group.name}"?`)) {
-        delete this.groups[groupId];
-        this.saveGroups();
-        this.updateVisibleGroups();
-        this.selectedGroup = null;
-      }
-    } else {
-      alert('You do not have permission to delete this group.');
-    }
-  }
-
-  // Leave a group
-  leaveGroup(groupId: string) {
-    const group = this.groups[groupId];
-    if (!group) return;
-
-    // Remove current user from members
-    const memberIdx = group.members.indexOf(this.currentUser.id);
-    if (memberIdx > -1) group.members.splice(memberIdx, 1);
-
-    // Remove from admins if necessary
-    if (group.groupAdmins) {
-      const adminIdx = group.groupAdmins.indexOf(this.currentUser.id);
-      if (adminIdx > -1) group.groupAdmins.splice(adminIdx, 1);
-    }
-
-    this.saveGroups();
-    this.updateVisibleGroups();
-
-    // Close edit panel if open
-    if (this.selectedGroup && this.selectedGroup.id === groupId) {
-      this.selectedGroup = null;
-    }
-  }
-
-  // Add a member to the selected group
-  addMember() {
-    if (!this.newMember.trim() || !this.selectedGroup) return;
-    if (!this.canEdit(this.selectedGroup)) return;
-    if (this.selectedGroup.members.includes(this.newMember)) return;
-
-    this.selectedGroup.members.push(this.newMember);
-    this.saveGroups();
-    this.updateVisibleGroups();
-    this.newMember = '';
-  }
-
-  // Remove a member from the selected group
-  removeMember() {
-    if (!this.selectedMember || !this.selectedGroup) return;
-    if (!this.canEdit(this.selectedGroup)) return;
-
-    const index = this.selectedGroup.members.indexOf(this.selectedMember);
-    if (index > -1) this.selectedGroup.members.splice(index, 1);
-
-    this.saveGroups();
-    this.updateVisibleGroups();
-    this.selectedMember = '';
-    this.selectedGroup = null;
-  }
-
-  // Get username by user ID
-  getUsernameById(id: string): string {
-    const user = this.users.find(u => u.id === id);
+  getUsernameById(id: string) {
+    const user = this.users.find(u => u._id === id);
     return user ? user.username : id;
   }
 
-  // Save groups to localStorage
-  private saveGroups() {
-    localStorage.setItem('groups', JSON.stringify(this.groups));
+  editGroup(group: any) {
+    this.selectedGroup = group;
+    this.newMember = '';
+    this.selectedNewAdmin = '';
+  }
+
+  addMemberToGroup(group: any, memberId: string) {
+    if (!memberId || group.members.includes(memberId)) return;
+
+    this.http.put(`${this.backendUrl}/groups/${group._id}/add-member`, { userId: memberId }, { withCredentials: true })
+      .subscribe({
+        next: () => {
+          group.members.push(memberId); // update local copy
+          this.newMember = '';
+        },
+        error: (err) => console.error(err)
+      });
+  }
+
+  removeMemberFromGroup(group: any, memberId: string) {
+    if (!memberId) return;
+
+    this.http.put(`${this.backendUrl}/groups/${group._id}/remove-member`, { userId: memberId }, { withCredentials: true })
+      .subscribe({
+        next: () => this.fetchGroups(), // refresh list after removal
+        error: (err) => console.error("Error removing member:", err)
+      });
+  }
+
+  makeGroupAdmin(group: any, newAdmin: string) {
+    if (!newAdmin || group.groupAdmins.includes(newAdmin)) return;
+
+    this.http.put(`${this.backendUrl}/groups/${group._id}/add-admin`, { userId: newAdmin }, { withCredentials: true })
+      .subscribe({
+        next: () => {
+          group.groupAdmins.push(newAdmin);
+          this.selectedNewAdmin = '';
+        },
+        error: (err) => console.error(err)
+      });
+  }
+
+  updateGroup(group: any) {
+    this.http.put(`${this.backendUrl}/groups/${group._id}`, group, { withCredentials: true })
+      .subscribe(() => this.fetchGroups());
+  }
+
+  // Navigate to the channels page for this group
+  goToGroupChannels(groupId: string) {
+    this.router.navigate(['/groups', groupId, 'channels']);
   }
 }

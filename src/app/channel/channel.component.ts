@@ -1,111 +1,103 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-channel',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, HttpClientModule, FormsModule],
   templateUrl: './channel.component.html',
   styleUrls: ['./channel.component.css']
 })
 export class ChannelComponent implements OnInit {
-  groupId: string | null = null; // Store current group ID from route
-  group: any = null;             // Store the current group object
-  currentUser: any = null;       // Store the currently logged-in user
+  backendUrl = 'http://localhost:3000/api';
 
-  constructor(private route: ActivatedRoute) {}
+  groupId: string | null = null;
+  group: any = null;
+  currentUser: any = null;
+  channels: any[] = [];
 
-  ngOnInit() {
-    // Load current user from localStorage
-    this.currentUser = JSON.parse(localStorage.getItem('currentUser')!);
+  newChannelName: string = '';
+  newChannelDesc: string = '';
 
-    // Get group ID from route parameters
-    this.groupId = this.route.snapshot.paramMap.get('groupId');
+  constructor(private route: ActivatedRoute, private http: HttpClient, private router: Router) {}
 
-    // Load groups from localStorage
-    const groups = JSON.parse(localStorage.getItem('groups') || '{}');
-    this.group = groups[this.groupId!];
+ngOnInit() {
+  this.groupId = this.route.snapshot.paramMap.get('groupId');
 
-    // Ensure the group has channels; if none exist, add default channels
-    if (this.group) {
-      if (!this.group.channels || this.group.channels.length === 0) {
-        this.group.channels = [
-          { id: 'c1', name: 'General' },
-          { id: 'c2', name: 'Random' },
-          { id: 'c3', name: 'Announcements' }
-        ];
-      }
+  this.http.get<any>(`${this.backendUrl}/user/current`, { withCredentials: true })
+    .subscribe({
+      next: (user) => {
+        this.currentUser = user;
+        if (this.groupId) {
+          this.fetchGroup(this.groupId); // channels come from group.channels
+          // remove fetchChannels()
+        }
+      },
+      error: () => this.router.navigate(['/login'])
+    });
+}
 
-      // Save any changes back to localStorage
-      groups[this.groupId!] = this.group;
-      localStorage.setItem('groups', JSON.stringify(groups));
-    }
+fetchGroup(groupId: string) {
+  this.http.get<any>(`${this.backendUrl}/groups/${groupId}`, { withCredentials: true })
+    .subscribe({
+      next: (group) => {
+        this.group = group;
+        this.channels = group.channels || [];
+      },
+      error: (err) => console.error('Failed to load group:', err)
+    });
+}
+
+  fetchChannels(groupId: string) {
+    this.http.get<any[]>(`${this.backendUrl}/channels/${groupId}`, { withCredentials: true })
+      .subscribe({
+        next: (channels) => this.channels = channels,
+        error: (err) => console.error('Failed to load channels:', err)
+      });
   }
 
-  // Check if the current user can edit channels (SUPER_ADMIN or group admin)
   canEdit(): boolean {
     return (
-      this.currentUser?.role === 'SUPER_ADMIN' ||
-      this.group?.groupAdmins?.includes(this.currentUser?.id)
+      this.currentUser?.roles.includes('SUPER_ADMIN') ||
+      this.group?.groupAdmins?.includes(this.currentUser?._id)
     );
   }
 
-  // Add a new channel to the group
-  addChannel() {
-    if (!this.canEdit()) {
-      alert('You do not have permission to add channels.');
-      return;
-    }
+  createChannel() {
+  if (!this.canEdit()) return;
 
-    const name = prompt('Enter channel name'); // Ask user for channel name
-    if (name && name.trim()) {
-      const newChannel = { id: 'c' + Date.now(), name: name.trim() }; // Unique ID using timestamp
-      this.group.channels.push(newChannel);
+  if (this.newChannelName.trim()) {
+    const newChannel = {
+      name: this.newChannelName.trim(),
+      description: this.newChannelDesc.trim() || ''
+    };
 
-      // Save updated group to localStorage
-      const groups = JSON.parse(localStorage.getItem('groups') || '{}');
-      groups[this.groupId!] = this.group;
-      localStorage.setItem('groups', JSON.stringify(groups));
-    }
+    this.http.put(`${this.backendUrl}/groups/${this.groupId}/add-channel`, newChannel, { withCredentials: true })
+      .subscribe({
+        next: (updatedGroup) => {
+          this.group = updatedGroup;
+          this.channels = (updatedGroup as any).channels || [];
+          this.newChannelName = '';
+          this.newChannelDesc = '';
+        },
+        error: (err) => console.error('Failed to add channel:', err)
+      });
   }
+}
 
-  // Update an existing channel's name
-  updateChannel(channelId: string, currentName: string) {
-    if (!this.canEdit()) {
-      alert('You do not have permission to edit channels.');
-      return;
-    }
 
-    const newName = prompt('Enter new name', currentName); // Ask for new name
-    if (newName && newName.trim()) {
-      this.group.channels = this.group.channels.map((c: any) =>
-        c.id === channelId ? { ...c, name: newName.trim() } : c
-      );
-
-      // Save updated group to localStorage
-      const groups = JSON.parse(localStorage.getItem('groups') || '{}');
-      groups[this.groupId!] = this.group;
-      localStorage.setItem('groups', JSON.stringify(groups));
-    }
-  }
-
-  // Remove a channel from the group
-  removeChannel(channelId: string) {
-    if (!this.canEdit()) {
-      alert('You do not have permission to remove channels.');
-      return;
-    }
+  deleteChannel(channelId: string) {
+    if (!this.canEdit()) return;
 
     if (confirm('Are you sure you want to delete this channel?')) {
-      this.group.channels = this.group.channels.filter(
-        (c: any) => c.id !== channelId
-      );
-
-      // Save updated group to localStorage
-      const groups = JSON.parse(localStorage.getItem('groups') || '{}');
-      groups[this.groupId!] = this.group;
-      localStorage.setItem('groups', JSON.stringify(groups));
+      this.http.delete(`${this.backendUrl}/channels/${channelId}`, { withCredentials: true })
+        .subscribe({
+          next: () => this.fetchChannels(this.groupId!),
+          error: (err) => console.error('Failed to delete channel:', err)
+        });
     }
   }
 }

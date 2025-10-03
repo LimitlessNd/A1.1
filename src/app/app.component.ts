@@ -1,57 +1,51 @@
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterOutlet, RouterModule, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { filter } from 'rxjs/operators';
+import { RouterModule, Router } from '@angular/router';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterModule, RouterOutlet],
+  imports: [CommonModule, RouterModule, HttpClientModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
   username: string = '';
-  role: string = '';
+  roles: string[] = []; // ✅ Declare roles
+  backendUrl = 'http://localhost:3000/api';
 
-  constructor(private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
-  ngOnInit(): void {
-    this.loadUser();
-
-    // 👇 Reload user info on every route change
-    this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => {
-        this.loadUser();
+  ngOnInit() {
+    this.http.get<any>(`${this.backendUrl}/user/current`, { withCredentials: true })
+      .subscribe({
+        next: (user) => {
+          this.username = user.username;
+          this.roles = user.roles || [];
+        },
+        error: () => {
+          this.username = '';
+          this.roles = [];
+          this.router.navigate(['/login']);
+        }
       });
   }
 
-  loadUser() {
-    const userString = localStorage.getItem('currentUser');
-    if (userString) {
-      const user = JSON.parse(userString);
-      this.username = user.username;
-      this.role = user.role || 'USER';
-    } else {
-      this.username = '';
-      this.role = '';
-    }
+  isLoggedIn(): boolean {
+    return !!this.username;
   }
 
   logout() {
-    localStorage.removeItem('currentUser');
-    this.username = '';
-    this.role = '';
-    this.router.navigate(['/login']);
+    this.http.post(`${this.backendUrl}/logout`, {}, { withCredentials: true })
+      .subscribe(() => {
+        this.username = '';
+        this.roles = [];
+        this.router.navigate(['/login']);
+      });
   }
 
-  isLoggedIn(): boolean {
-    return !!localStorage.getItem('currentUser');
-  }
   resetApp() {
-  localStorage.clear();
-  location.reload(); // force reload so defaults load again
-}
-
+    // reset logic if needed
+  }
 }

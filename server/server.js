@@ -1,116 +1,128 @@
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const authGuard = require('./authGuard');
+const express = require("express");
+const cors = require("cors");
+const session = require("express-session");
+const { connectDB } = require("./app"); // MongoDB connection
+const userService = require("./services/users");
+const groupService = require("./services/groups");
+const authGuard = require("./authGuard");
+const channelRoutes = require("./routes/channels");
+const groupRoutes = require("./routes/groups");
 
 const app = express();
 
-// ---------------------------
 // Middleware
-// ---------------------------
 app.use(cors({
-  origin: 'http://localhost:4200', // frontend origin
+  origin: "http://localhost:4200",
   credentials: true
 }));
 app.use(express.json());
-
-// 🔐 Session setup
 app.use(session({
-  secret: 'super-secret-key', 
+  secret: "super-secret-key",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // true if using HTTPS
+  cookie: { secure: false }
 }));
 
+app.use("/api/groups", groupRoutes);
+app.use("/api/channels", channelRoutes);
 // ---------------------------
-// User Model
-// ---------------------------
-class User {
-  constructor(id, username, email, password, roles = ['USER'], valid = false) {
-    this.id = id;
-    this.username = username;
-    this.email = email;
-    this.password = password;
-    this.roles = roles;
-    this.valid = valid;
-  }
-}
-
-// Hardcoded user database
-const users = [
-  new User('u1', 'super', 'super@test.com', '123', ['SUPER_ADMIN']),
-  new User('u2', 'groupAdmin', 'admin@test.com', 'admin123', ['GROUP_ADMIN']),
-  new User('u3', 'John', '1@test.com', '123', ['USER']),
-  new User('u4', 'Mary', '2@test.com', 'abc', ['USER']),
-  new User('u5', 'Steve', '3@test.com', 'pass', ['USER'])
-];
-
-// ---------------------------
-// Routes
+// Auth
 // ---------------------------
 
-// Login route
-app.post('/api/auth', (req, res) => {
+// Login
+app.post("/api/auth", async (req, res) => {
   const { email, password } = req.body;
-  const foundUser = users.find(u => u.email === email && u.password === password);
+  const user = await userService.getUserByEmail(email);
 
-  if (foundUser) {
-    // Save session info
+  if (user && user.password === password) {
     req.session.user = {
-      id: foundUser.id,
-      username: foundUser.username,
-      email: foundUser.email,
-      role: foundUser.roles[0]
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      roles: user.roles || ["USER"]
     };
-    return res.json({ ...req.session.user, valid: true });
+    return res.json({ valid: true, ...req.session.user });
   }
-
-  // Invalid credentials
   return res.json({ valid: false });
 });
 
-// Protected route to get all users (only accessible if logged in)
-app.get('/api/users', authGuard, (req, res) => {
-  const userList = users.map(u => ({ id: u.id, username: u.username }));
-  res.json(userList);
+// Get current user
+app.get("/api/user/current", authGuard, (req, res) => {
+  res.json(req.session.user);
 });
 
-// Register new user
-app.post('/api/register', (req, res) => {
-  const { username, email, password } = req.body;
-
-  // Check for missing fields
-  if (!username || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required.' });
-  }
-
-  // Check if user/email already exists
-  const exists = users.find(u => u.email === email || u.username === username);
-  if (exists) {
-    return res.status(400).json({ message: 'Username or email already exists.' });
-  }
-
-  // Create new user
-  const newId = 'u' + (users.length + 1);
-  const newUser = new User(newId, username, email, password);
-  users.push(newUser);
-
-  return res.json({
-    message: 'User registered successfully!',
-    user: { id: newId, username, email }
-  });
-});
-
-// Logout route
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ message: 'Logged out successfully' });
-  });
+// Logout
+app.post("/api/logout", authGuard, (req, res) => {
+  req.session.destroy(() => res.json({ message: "Logged out" }));
 });
 
 // ---------------------------
-// Start server
+// Users
 // ---------------------------
-app.listen(3000, () => {
-  console.log('✅ Server running on http://localhost:3000');
+
+app.get("/api/users", authGuard, async (req, res) => {
+  const users = await userService.getUsers();
+  const safeUsers = users.map(u => ({
+    _id: u._id,
+    username: u.username,
+    email: u.email,
+    roles: u.roles
+  }));
+  res.json(safeUsers);
 });
+
+// ---------------------------
+// Registration
+// ---------------------------
+app.post("/api/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    // Validate fields
+    if (!username || !email || !password) {
+      return res.status(400).json({ success: false, message: "Please fill in all fields" });
+    }
+
+    // Check if user already exists
+    const existingUser = await userService.getUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Email already in use" });
+    }
+
+    // Create new user (roles default to ["USER"], groups default to empty)
+    const newUser = {
+      username,
+      email,
+      password,          // In production, hash this!
+      roles: ["USER"],
+      groups: []
+    };
+
+    // Save to DB
+    const result = await userService.addUser(newUser);
+
+    // Auto-login: set session
+    req.session.user = {
+      _id: result.insertedId.toString(),
+      username,
+      email,
+      roles: ["USER"],
+      groups: []
+    };
+
+    // Return success
+    res.json({ success: true, _id: result.insertedId, username, email, roles: ["USER"] });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
+// ---------------------------
+// Start
+// ---------------------------
+connectDB().then(() => {
+  app.listen(3000, () => console.log("✅ Server running on http://localhost:3000"));
+}).catch(err => console.error("Failed to connect to DB:", err));
