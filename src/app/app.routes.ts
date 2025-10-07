@@ -3,7 +3,7 @@ import { LoginComponent } from './login/login.component';
 import { GroupComponent } from './group/group.component';
 import { AccountComponent } from './account/account.component';
 import { HomeComponent } from './home/home.component';
-import { ChannelComponent } from './channel/channel.component'; // import the new component
+import { ChannelComponent } from './channel/channel.component'; 
 import { UserRegistrationComponent } from './user-registration/user-registration.component';
 import { ChannelViewComponent } from './channel-view/channel-view.component';
 

@@ -14,11 +14,11 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./channel-view.component.css']
 })
 export class ChannelViewComponent implements OnDestroy {
-  channelId!: string;
-  username: string = 'Anonymous';
-  messages: any[] = [];
-  newMessage: string = '';
-  private subscriptions: Subscription[] = [];
+  channelId!: string // current channel ID
+  username: string = 'Anonymous' // logged-in username
+  messages: any[] = [] // messages for this channel
+  newMessage: string = '' // new message input
+  private subscriptions: Subscription[] = [] // store RxJS subscriptions
 
   constructor(
     private route: ActivatedRoute,
@@ -27,42 +27,44 @@ export class ChannelViewComponent implements OnDestroy {
   ) {}
 
   async ngOnInit() {
-    this.channelId = this.route.snapshot.paramMap.get('channelId')!;
+    this.channelId = this.route.snapshot.paramMap.get('channelId')! // get channelId from route
 
-    // Get current user
+    // get current user
     try {
       const user: any = await this.http
         .get('http://localhost:3000/api/user/current', { withCredentials: true })
-        .toPromise();
-      this.username = user.username || 'Anonymous';
+        .toPromise()
+      this.username = user.username || 'Anonymous'
     } catch (err) {
-      console.error('Failed to get current user:', err);
+      console.error('Failed to get current user:', err)
     }
 
-    // Subscribe to chat history (append instead of overwrite)
+    // subscribe to chat history (append instead of overwrite)
     const subHistory = this.chatService.onHistory().subscribe(history => {
-      this.messages = [...this.messages, ...history];
-    });
+      this.messages = [...this.messages, ...history]
+    })
 
-    // Subscribe to incoming messages
+    // subscribe to incoming messages
     const subMessage = this.chatService.onMessage().subscribe(msg => {
-      this.messages.push(msg);
-    });
+      this.messages.push(msg)
+    })
 
-    this.subscriptions.push(subHistory, subMessage);
+    this.subscriptions.push(subHistory, subMessage)
 
-    // Join the channel (this triggers server to send join system message)
-    this.chatService.joinChannel(this.channelId);
+    // join the channel (triggers server to send join system message)
+    this.chatService.joinChannel(this.channelId)
   }
 
+  // send a new message
   sendMessage() {
-    if (!this.newMessage.trim()) return;
-    this.chatService.sendMessage(this.channelId, this.newMessage);
-    this.newMessage = '';
+    if (!this.newMessage.trim()) return
+    this.chatService.sendMessage(this.channelId, this.newMessage)
+    this.newMessage = ''
   }
 
+  // leave channel and unsubscribe from observables
   ngOnDestroy() {
-    this.chatService.leaveChannel(this.channelId);
-    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.chatService.leaveChannel(this.channelId)
+    this.subscriptions.forEach(sub => sub.unsubscribe())
   }
 }

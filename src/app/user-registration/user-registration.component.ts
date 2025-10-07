@@ -12,47 +12,51 @@ import { RouterModule, Router } from '@angular/router';
   styleUrls: ['./user-registration.component.css']
 })
 export class UserRegistrationComponent {
-  username: string = '';
-  email: string = '';
-  password: string = '';
-  errorMessage: string = '';
-  successMessage: string = '';
+  username: string = '' // input field for username
+  email: string = '' // input field for email
+  password: string = '' // input field for password
+  errorMessage: string = '' // error message to display
+  successMessage: string = '' // success message to display
 
   constructor(private http: HttpClient, private router: Router) {}
 
   register() {
     // Validate all fields
     if (!this.username.trim() || !this.email.trim() || !this.password.trim()) {
-      this.errorMessage = 'Please fill in all fields.';
-      return;
+      this.errorMessage = 'Please fill in all fields.'
+      return
     }
 
     // Reset messages
-    this.errorMessage = '';
-    this.successMessage = '';
+    this.errorMessage = ''
+    this.successMessage = ''
 
+    // Prepare new user object
     const newUser = {
       username: this.username,
       email: this.email,
       password: this.password
-    };
+    }
 
-    // POST request to backend
+    // Send POST request to backend registration endpoint
     this.http.post<any>('http://localhost:3000/api/register', newUser, { withCredentials: true })
       .subscribe({
         next: (res) => {
+          // Registration successful
           if (res.success) {
-            this.successMessage = 'Registration successful! You are now logged in.';
-            // Optional: store current user locally if needed
-            setTimeout(() => this.router.navigate(['/login']), 1500);
+            this.successMessage = 'Registration successful! You are now logged in.'
+            // Redirect to login page after a short delay
+            setTimeout(() => this.router.navigate(['/login']), 1500)
           } else {
-            this.errorMessage = res.message || 'Registration failed.';
+            // Backend returned failure
+            this.errorMessage = res.message || 'Registration failed.'
           }
         },
         error: (err) => {
-          console.error(err);
-          this.errorMessage = err.error?.message || 'Server error. Please try again later.';
+          // Handle server or network errors
+          console.error(err)
+          this.errorMessage = err.error?.message || 'Server error. Please try again later.'
         }
-      });
+      })
   }
 }

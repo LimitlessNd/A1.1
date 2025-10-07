@@ -5,7 +5,7 @@ let db;
 async function connectDB() {
   const client = new MongoClient('mongodb://localhost:27017');
   await client.connect();
-  db = client.db('mydb_app');  // use a unique name for this project
+  db = client.db('mydb_app'); 
   console.log('MongoDB connected to mydb_app');
   return db;
 }

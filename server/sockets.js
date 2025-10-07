@@ -19,11 +19,13 @@ module.exports = (io, sessionMiddleware) => {
 
     socket.currentChannel = null;
 
+    // ---------------------------
     // Join a channel
+    // ---------------------------
     socket.on("joinChannel", async (channelId) => {
       if (!channelId) return;
 
-      // Leave previous channel
+      // Leave previous channel if any
       if (socket.currentChannel) {
         socket.leave(socket.currentChannel);
         io.to(socket.currentChannel).emit("message", {
@@ -59,7 +61,9 @@ module.exports = (io, sessionMiddleware) => {
       });
     });
 
+    // ---------------------------
     // Leave a channel
+    // ---------------------------
     socket.on("leaveChannel", () => {
       if (socket.currentChannel) {
         io.to(socket.currentChannel).emit("message", {
@@ -76,7 +80,9 @@ module.exports = (io, sessionMiddleware) => {
       }
     });
 
+    // ---------------------------
     // Send a message
+    // ---------------------------
     socket.on("sendMessage", async (data) => {
       const { channelId, message } = data;
       if (!channelId || !message) return;
@@ -96,7 +102,9 @@ module.exports = (io, sessionMiddleware) => {
       }
     });
 
+    // ---------------------------
     // Disconnect
+    // ---------------------------
     socket.on("disconnect", () => {
       if (socket.currentChannel) {
         io.to(socket.currentChannel).emit("message", {

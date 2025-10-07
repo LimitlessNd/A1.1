@@ -7,34 +7,39 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, CommonModule, NgIf, HttpClientModule, RouterModule], // ✅ add NgIf
+  imports: [FormsModule, CommonModule, NgIf, HttpClientModule, RouterModule], // import necessary modules
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
-  email = '';
-  password = '';
-  error = false;
+  email = '' // user email input
+  password = '' // user password input
+  error = false // login error flag
 
   constructor(private router: Router, private http: HttpClient) {}
 
+  // attempt login
   login() {
-  this.http.post<any>('http://localhost:3000/api/auth', { email: this.email, password: this.password }, { withCredentials: true })
-    .subscribe({
+    this.http.post<any>(
+      'http://localhost:3000/api/auth', 
+      { email: this.email, password: this.password }, 
+      { withCredentials: true }
+    ).subscribe({
       next: (user) => {
         if (user.valid) {
-          this.error = false;
-          // Save to localStorage
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          // Navigate to home
+          this.error = false // reset error
+          // save user to localStorage
+          localStorage.setItem('currentUser', JSON.stringify(user))
+          // navigate to home
           this.router.navigate(['/home']).then(() => {
-            // Optional: trigger re-read in AppComponent
-            window.dispatchEvent(new Event('storage'));
-          });
+            // trigger storage event if needed elsewhere
+            window.dispatchEvent(new Event('storage'))
+          })
         } else {
-          this.error = true;
+          this.error = true // invalid credentials
         }
       },
-      error: () => this.error = true
-    });
-}}
+      error: () => this.error = true // server or network error
+    })
+  }
+}
