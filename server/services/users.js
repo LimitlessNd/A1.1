@@ -1,4 +1,3 @@
-// services/users.js
 const { getDb } = require("../app");
 const { ObjectId } = require("mongodb");
 
@@ -26,13 +25,17 @@ async function addUser(user) {
   return db.collection("users").insertOne(user);
 }
 
-// Update existing user
+// Update existing user with optional profile image
 async function updateUser(user) {
   const db = getDb();
-  const { _id, username, email, password, roles } = user;
+  const { _id, username, email, password, roles, profileImage } = user;
+
+  const updateData = { username, email, password, roles };
+  if (profileImage) updateData.profileImage = profileImage;
+
   return db.collection("users").updateOne(
     { _id: new ObjectId(_id) },
-    { $set: { username, email, password, roles } }
+    { $set: updateData }
   );
 }
 

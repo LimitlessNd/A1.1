@@ -1,15 +1,24 @@
 const express = require("express");
-const { ObjectId } = require("mongodb");
 const router = express.Router();
+const { ObjectId } = require("mongodb");
 const authGuard = require("../authGuard");
 const groupService = require("../services/groups");
-const { getDb } = require("../app");
 
-// Get all groups for current user
+// ---------------------------
+// GET /api/groups
+// ---------------------------
+// SUPER_ADMIN sees all groups, normal users see their own
 router.get("/", authGuard, async (req, res) => {
   try {
     const user = req.session.user;
-    const groups = await groupService.getGroupsForUser(user._id);
+    let groups;
+
+    if (user.roles.includes("SUPER_ADMIN")) {
+      groups = await groupService.getGroups(); // all groups
+    } else {
+      groups = await groupService.getGroupsForUser(user._id);
+    }
+
     res.json(groups);
   } catch (err) {
     console.error("Error fetching groups:", err);
@@ -17,7 +26,9 @@ router.get("/", authGuard, async (req, res) => {
   }
 });
 
-// Get single group
+// ---------------------------
+// GET single group
+// ---------------------------
 router.get("/:id", authGuard, async (req, res) => {
   try {
     const group = await groupService.getGroupById(req.params.id);
@@ -29,7 +40,9 @@ router.get("/:id", authGuard, async (req, res) => {
   }
 });
 
-// Create group
+// ---------------------------
+// CREATE group
+// ---------------------------
 router.post("/", authGuard, async (req, res) => {
   try {
     const user = req.session.user;
@@ -38,7 +51,6 @@ router.post("/", authGuard, async (req, res) => {
     if (!group.groupAdmins) group.groupAdmins = [user._id];
     if (!group.members) group.members = [user._id];
 
-    // Assign default channels with MongoDB ObjectIds
     if (!group.channels) {
       group.channels = [
         { _id: new ObjectId(), name: "General", description: "General discussion" },
@@ -54,13 +66,25 @@ router.post("/", authGuard, async (req, res) => {
   }
 });
 
-// Update group
+// ---------------------------
+// UPDATE group
+// ---------------------------
 router.put("/:id", authGuard, async (req, res) => {
   try {
     const updates = { ...req.body };
     delete updates._id;
-    const result = await groupService.updateGroup(req.params.id, updates);
-    if (result.matchedCount === 0) return res.status(404).json({ error: "Group not found" });
+
+    const user = req.session.user;
+    const group = await groupService.getGroupById(req.params.id);
+
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    // Allow SUPER_ADMIN or group admin to update
+    if (!group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
+      return res.status(403).json({ error: "You do not have permission to update this group" });
+    }
+
+    await groupService.updateGroup(req.params.id, updates);
     res.json({ message: "Group updated" });
   } catch (err) {
     console.error("Error updating group:", err);
@@ -68,9 +92,21 @@ router.put("/:id", authGuard, async (req, res) => {
   }
 });
 
-// Delete group
+// ---------------------------
+// DELETE group
+// ---------------------------
 router.delete("/:id", authGuard, async (req, res) => {
   try {
+    const user = req.session.user;
+    const group = await groupService.getGroupById(req.params.id);
+
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    // Allow SUPER_ADMIN or group admin to delete
+    if (!group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
+      return res.status(403).json({ error: "You do not have permission to delete this group" });
+    }
+
     await groupService.deleteGroup(req.params.id);
     res.json({ message: "Group deleted" });
   } catch (err) {
@@ -79,14 +115,17 @@ router.delete("/:id", authGuard, async (req, res) => {
   }
 });
 
-// Leave a group
+// ---------------------------
+// LEAVE group
+// ---------------------------
 router.put("/:id/leave", authGuard, async (req, res) => {
   try {
     const user = req.session.user;
     const group = await groupService.getGroupById(req.params.id);
+
     if (!group) return res.status(404).json({ error: "Group not found" });
 
-    if (group.groupAdmins.includes(user._id)) {
+    if (group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
       return res.status(403).json({ error: "Group admins cannot leave the group" });
     }
 
@@ -98,11 +137,22 @@ router.put("/:id/leave", authGuard, async (req, res) => {
   }
 });
 
-// Add member
+// ---------------------------
+// ADD member
+// ---------------------------
 router.put("/:id/add-member", authGuard, async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
+
+    const user = req.session.user;
+    const group = await groupService.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    // Only SUPER_ADMIN or group admin can add members
+    if (!group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
+      return res.status(403).json({ error: "You do not have permission to add members" });
+    }
 
     await groupService.addMemberToGroup(req.params.id, userId);
     res.json({ message: "User added to group" });
@@ -112,11 +162,22 @@ router.put("/:id/add-member", authGuard, async (req, res) => {
   }
 });
 
-// Remove member
+// ---------------------------
+// REMOVE member
+// ---------------------------
 router.put("/:id/remove-member", authGuard, async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: "No userId provided" });
+
+    const user = req.session.user;
+    const group = await groupService.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    // Only SUPER_ADMIN or group admin can remove members
+    if (!group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
+      return res.status(403).json({ error: "You do not have permission to remove members" });
+    }
 
     await groupService.removeMemberFromGroup(req.params.id, userId);
     res.json({ message: "User removed from group" });
@@ -125,27 +186,28 @@ router.put("/:id/remove-member", authGuard, async (req, res) => {
     res.status(500).json({ error: "Failed to remove member" });
   }
 });
-
-// Add channel
-router.put("/:id/add-channel", authGuard, async (req, res) => {
+// ---------------------------
+// ADD admin
+// ---------------------------
+router.put("/:id/add-admin", authGuard, async (req, res) => {
   try {
-    const { name, description } = req.body;
-    const db = getDb();
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: "No userId provided" });
 
-    const updatedGroup = await db.collection("groups").findOneAndUpdate(
-      { _id: new ObjectId(req.params.id) },
-      { $push: { channels: { _id: new ObjectId(), name, description } } },
-      { returnDocument: "after" } // ensures updated document is returned
-    );
+    const user = req.session.user;
+    const group = await groupService.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
 
-    if (!updatedGroup.value) {
-      return res.status(404).json({ error: "Group not found" });
+    // Only SUPER_ADMIN or group admin can add new admins
+    if (!group.groupAdmins.includes(user._id) && !user.roles.includes("SUPER_ADMIN")) {
+      return res.status(403).json({ error: "You do not have permission to add admins" });
     }
 
-    res.json(updatedGroup.value); // always send the updated group
+    await groupService.makeGroupAdmin(req.params.id, userId);
+    res.json({ message: "User promoted to admin" });
   } catch (err) {
-    console.error("Error adding channel:", err);
-    res.status(500).json({ error: "Failed to add channel" });
+    console.error("Error adding admin:", err);
+    res.status(500).json({ error: "Failed to add admin" });
   }
 });
 

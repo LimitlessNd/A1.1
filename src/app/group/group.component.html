@@ -43,6 +43,7 @@
                   (click)="editGroup(group); $event.stopPropagation()">
             Edit Group
           </button>
+          
 
         </div>
       </div>
@@ -68,6 +69,7 @@
         </select>
         <button class="btn btn-success" (click)="addMemberToGroup(selectedGroup, newMember)" [disabled]="!newMember">Add Member</button>
       </div>
+      
 
       <!-- Make Admin -->
       <div class="input-group mb-2">
@@ -88,6 +90,12 @@
           <button class="btn btn-sm btn-danger" *ngIf="memberId !== currentUser._id" (click)="removeMemberFromGroup(selectedGroup, memberId)">Remove</button>
         </li>
       </ul>
+      <!-- Delete Group button (only visible to SUPER_ADMIN or groupAdmins) -->
+<button class="btn btn-danger w-100 mt-2"
+        *ngIf="isAdmin(selectedGroup) || currentUser.roles.includes('SUPER_ADMIN')"
+        (click)="deleteGroup(selectedGroup)">
+  Delete Group
+</button>
 
       <button class="btn btn-secondary" (click)="selectedGroup = null">Close</button>
     </div>

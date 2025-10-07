@@ -11,6 +11,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
+    title = 'A1.1';  // add this property
   username: string = '';
   roles: string[] = []; // ✅ Declare roles
   backendUrl = 'http://localhost:3000/api';

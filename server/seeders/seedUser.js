@@ -8,28 +8,25 @@ async function run() {
   // Users to seed
   const users = [
     {
-      _id: "1",
       username: "superAdmin",
       email: "super@test.com",
       password: "123",  // in production, hash passwords!
       roles: ["SUPER_ADMIN"],
-      groups: ["group1"]
+      groups: ["68e34bc8a94dc75abe0788e1", "68e34ae52724b1c733f788d2"]
     },
     {
-      _id: "2",
       username: "john",
       email: "john@example.com",
       password: "password",
       roles: ["USER"],
-      groups: ["group1", "group2"]
+      groups: ["68e34bc8a94dc75abe0788e1", "68e34ae52724b1c733f788d2"]
     },
     {
-      _id: "3",
       username: "jane",
       email: "jane@example.com",
       password: "password",
       roles: ["USER"],
-      groups: ["group2"]
+       groups: ["68e34bc8a94dc75abe0788e1", "68e34ae52724b1c733f788d2"]
     }
   ];
 
