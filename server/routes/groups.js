@@ -1,14 +1,14 @@
 const express = require("express");
+const { ObjectId } = require("mongodb");
 const router = express.Router();
 const authGuard = require("../authGuard");
 const groupService = require("../services/groups");
+const { getDb } = require("../app");
 
 // Get all groups for current user
 router.get("/", authGuard, async (req, res) => {
   try {
     const user = req.session.user;
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-
     const groups = await groupService.getGroupsForUser(user._id);
     res.json(groups);
   } catch (err) {
@@ -17,23 +17,32 @@ router.get("/", authGuard, async (req, res) => {
   }
 });
 
-// Create a group
+// Get single group
+router.get("/:id", authGuard, async (req, res) => {
+  try {
+    const group = await groupService.getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+    res.json(group);
+  } catch (err) {
+    console.error("Error fetching group:", err);
+    res.status(500).json({ error: "Failed to fetch group" });
+  }
+});
+
+// Create group
 router.post("/", authGuard, async (req, res) => {
   try {
-    const group = req.body;
     const user = req.session.user;
+    const group = req.body;
 
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-
-    // Ensure default admins and members
     if (!group.groupAdmins) group.groupAdmins = [user._id];
     if (!group.members) group.members = [user._id];
 
-    // Add default channels if not provided
+    // Assign default channels with MongoDB ObjectIds
     if (!group.channels) {
       group.channels = [
-        { id: 'c1', name: 'General', description: 'General discussion' },
-        { id: 'c2', name: 'Random', description: 'Random topics' }
+        { _id: new ObjectId(), name: "General", description: "General discussion" },
+        { _id: new ObjectId(), name: "Random", description: "Random topics" },
       ];
     }
 
@@ -45,16 +54,13 @@ router.post("/", authGuard, async (req, res) => {
   }
 });
 
-// Update a group
+// Update group
 router.put("/:id", authGuard, async (req, res) => {
   try {
     const updates = { ...req.body };
-    delete updates._id; // <-- remove _id so MongoDB won't try to change it
-
+    delete updates._id;
     const result = await groupService.updateGroup(req.params.id, updates);
-    if (result.matchedCount === 0)
-      return res.status(404).json({ error: "Group not found" });
-
+    if (result.matchedCount === 0) return res.status(404).json({ error: "Group not found" });
     res.json({ message: "Group updated" });
   } catch (err) {
     console.error("Error updating group:", err);
@@ -62,7 +68,7 @@ router.put("/:id", authGuard, async (req, res) => {
   }
 });
 
-// Delete a group
+// Delete group
 router.delete("/:id", authGuard, async (req, res) => {
   try {
     await groupService.deleteGroup(req.params.id);
@@ -73,24 +79,18 @@ router.delete("/:id", authGuard, async (req, res) => {
   }
 });
 
-// Leave a group (remove self from members)
+// Leave a group
 router.put("/:id/leave", authGuard, async (req, res) => {
   try {
     const user = req.session.user;
-    const groupId = req.params.id;
-
-    const group = await groupService.getGroupById(groupId);
+    const group = await groupService.getGroupById(req.params.id);
     if (!group) return res.status(404).json({ error: "Group not found" });
 
-    // Prevent admins from leaving
     if (group.groupAdmins.includes(user._id)) {
-      return res
-        .status(403)
-        .json({ error: "Group admins cannot leave the group" });
+      return res.status(403).json({ error: "Group admins cannot leave the group" });
     }
 
-    // Use service function
-    await groupService.leaveGroup(groupId, user._id);
+    await groupService.leaveGroup(req.params.id, user._id);
     res.json({ message: "You have left the group" });
   } catch (err) {
     console.error("Error leaving group:", err);
@@ -98,14 +98,13 @@ router.put("/:id/leave", authGuard, async (req, res) => {
   }
 });
 
+// Add member
 router.put("/:id/add-member", authGuard, async (req, res) => {
   try {
     const { userId } = req.body;
-    const groupId = req.params.id;
-
     if (!userId) return res.status(400).json({ error: "No userId provided" });
 
-    await groupService.addMemberToGroup(groupId, userId); // updates both group.members & user.groups
+    await groupService.addMemberToGroup(req.params.id, userId);
     res.json({ message: "User added to group" });
   } catch (err) {
     console.error("Error adding member:", err);
@@ -113,49 +112,41 @@ router.put("/:id/add-member", authGuard, async (req, res) => {
   }
 });
 
+// Remove member
 router.put("/:id/remove-member", authGuard, async (req, res) => {
   try {
     const { userId } = req.body;
-    const groupId = req.params.id;
-
     if (!userId) return res.status(400).json({ error: "No userId provided" });
 
-    await groupService.removeMemberFromGroup(groupId, userId);
+    await groupService.removeMemberFromGroup(req.params.id, userId);
     res.json({ message: "User removed from group" });
   } catch (err) {
-    console.error("Error removing member from group:", err);
+    console.error("Error removing member:", err);
     res.status(500).json({ error: "Failed to remove member" });
   }
 });
 
-// routes/groups.js
-router.put("/:groupId/add-channel", authGuard, async (req, res) => {
+// Add channel
+router.put("/:id/add-channel", authGuard, async (req, res) => {
   try {
     const { name, description } = req.body;
-    const groupId = req.params.groupId;
     const db = getDb();
 
     const updatedGroup = await db.collection("groups").findOneAndUpdate(
-      { _id: new ObjectId(groupId) },
-      { $push: { channels: { name, description } } },
-      { returnDocument: "after" } // returns the updated document
+      { _id: new ObjectId(req.params.id) },
+      { $push: { channels: { _id: new ObjectId(), name, description } } },
+      { returnDocument: "after" } // ensures updated document is returned
     );
 
-    res.json(updatedGroup.value);
+    if (!updatedGroup.value) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json(updatedGroup.value); // always send the updated group
   } catch (err) {
-    console.error(err);
+    console.error("Error adding channel:", err);
     res.status(500).json({ error: "Failed to add channel" });
   }
 });
-// GET /api/groups/:id → fetch a single group
-router.get("/:id", authGuard, async (req, res) => {
-  try {
-    const group = await groupService.getGroupById(req.params.id);
-    if (!group) return res.status(404).json({ error: "Group not found" });
-    res.json(group);
-  } catch (err) {
-    console.error("Error fetching group:", err);
-    res.status(500).json({ error: "Failed to fetch group" });
-  }
-});
+
 module.exports = router;

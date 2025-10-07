@@ -1,4 +1,3 @@
-// routes/channels.js
 const express = require("express");
 const router = express.Router();
 const authGuard = require("../authGuard");

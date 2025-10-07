@@ -1,4 +1,3 @@
-// services/channels.js
 const { getDb } = require("../app");
 const { ObjectId } = require("mongodb");
 

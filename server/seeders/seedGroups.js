@@ -8,27 +8,27 @@ async function run() {
     const db = getDb();
 
     // Groups to seed
-    const groups = [
-      {
-        name: "General Chat",
-        groupAdmins: ["2"], // john as admin
-        members: ["1", "2"], // superAdmin and john
-        channels: [
-          { id: "c1", name: "General", description: "General discussion" },
-          { id: "c2", name: "Random", description: "Random topics" },
-          { id: "c3", name: "Announcements", description: "Important announcements" }
-        ]
-      },
-      {
-        name: "Project Team",
-        groupAdmins: ["2"], // john as admin
-        members: ["2", "3"], // john and jane
-        channels: [
-          { id: "c1", name: "Project Updates", description: "Updates on the project" },
-          { id: "c2", name: "Resources", description: "Shared files and links" }
-        ]
-      }
-    ];
+   const groups = [
+  {
+    name: "General Chat",
+    groupAdmins: ["2"],
+    members: ["1", "2"],
+    channels: [
+      { id: "general_c1", name: "General", description: "General discussion" },
+      { id: "general_c2", name: "Random", description: "Random topics" },
+      { id: "general_c3", name: "Announcements", description: "Important announcements" }
+    ]
+  },
+  {
+    name: "Project Team",
+    groupAdmins: ["2"],
+    members: ["2", "3"],
+    channels: [
+      { id: "project_c1", name: "Project Updates", description: "Updates on the project" },
+      { id: "project_c2", name: "Resources", description: "Shared files and links" }
+    ]
+  }
+];
 
     // Insert groups
     const result = await db.collection('groups').insertMany(groups);

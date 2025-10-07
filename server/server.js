@@ -4,29 +4,30 @@ const session = require("express-session");
 const http = require("http");
 const { connectDB } = require("./app"); // MongoDB connection
 const userService = require("./services/users");
-const groupService = require("./services/groups");
 const authGuard = require("./authGuard");
 const channelRoutes = require("./routes/channels");
 const groupRoutes = require("./routes/groups");
-const initSockets = require("./sockets"); // should export a function(io)
+const initSockets = require("./sockets"); // sockets.js exports function(io)
 
 const app = express();
 
 // ---------------------------
-// Middleware
+// Session Middleware
 // ---------------------------
 const sessionMiddleware = session({
   secret: "super-secret-key",
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { secure: false, httpOnly: true }
 });
 
+// ---------------------------
+// Middleware
+// ---------------------------
 app.use(cors({
   origin: "http://localhost:4200",
   credentials: true
 }));
-
 app.use(express.json());
 app.use(sessionMiddleware);
 
@@ -45,14 +46,14 @@ app.post("/api/auth", async (req, res) => {
 
   if (user && user.password === password) {
     req.session.user = {
-      _id: user._id,
+      _id: user._id.toString(),
       username: user.username,
       email: user.email,
       roles: user.roles || ["USER"]
     };
     return res.json({ valid: true, ...req.session.user });
   }
-  return res.json({ valid: false });
+  return res.status(401).json({ valid: false, message: "Invalid credentials" });
 });
 
 app.get("/api/user/current", authGuard, (req, res) => {
@@ -68,13 +69,12 @@ app.post("/api/logout", authGuard, (req, res) => {
 // ---------------------------
 app.get("/api/users", authGuard, async (req, res) => {
   const users = await userService.getUsers();
-  const safeUsers = users.map(u => ({
-    _id: u._id,
+  res.json(users.map(u => ({
+    _id: u._id.toString(),
     username: u.username,
     email: u.email,
     roles: u.roles
-  }));
-  res.json(safeUsers);
+  })));
 });
 
 // ---------------------------
@@ -85,22 +85,13 @@ app.post("/api/register", async (req, res) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ success: false, message: "Please fill in all fields" });
+      return res.status(400).json({ success: false, message: "Please fill all fields" });
     }
 
     const existingUser = await userService.getUserByEmail(email);
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email already in use" });
-    }
+    if (existingUser) return res.status(400).json({ success: false, message: "Email in use" });
 
-    const newUser = {
-      username,
-      email,
-      password, // TODO: hash in production
-      roles: ["USER"],
-      groups: []
-    };
-
+    const newUser = { username, email, password, roles: ["USER"], groups: [] };
     const result = await userService.addUser(newUser);
 
     req.session.user = {
@@ -111,7 +102,7 @@ app.post("/api/register", async (req, res) => {
       groups: []
     };
 
-    res.json({ success: true, _id: result.insertedId, username, email, roles: ["USER"] });
+    res.json({ success: true, _id: result.insertedId, username, email });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -124,7 +115,6 @@ app.post("/api/register", async (req, res) => {
 connectDB().then(() => {
   const server = http.createServer(app);
 
-  // Initialize Socket.io with session access
   const { Server } = require("socket.io");
   const io = new Server(server, {
     cors: { origin: "http://localhost:4200", methods: ["GET","POST"], credentials: true }
@@ -133,10 +123,8 @@ connectDB().then(() => {
   // Share session with socket.io
   io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
-  initSockets(io); // Your sockets.js should export a function(io)
+  // Pass sessionMiddleware to sockets.js
+  initSockets(io, sessionMiddleware);
 
-  server.listen(3000, () => {
-    console.log("✅ Server running on http://localhost:3000");
-  });
-
-}).catch(err => console.error("Failed to connect to DB:", err));
+  server.listen(3000, () => console.log("✅ Server running on http://localhost:3000"));
+}).catch(err => console.error("DB connection failed:", err));

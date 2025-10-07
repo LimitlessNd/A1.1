@@ -25,6 +25,7 @@ export class GroupComponent implements OnInit {
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
+    // Get current logged-in user
     this.http.get<any>(`${this.backendUrl}/user/current`, { withCredentials: true })
       .subscribe({
         next: (user) => {
@@ -42,13 +43,16 @@ export class GroupComponent implements OnInit {
         next: (groups) => {
           this.groups = groups.filter(g => g.members.includes(this.currentUser._id));
         },
-        error: (err) => console.error(err)
+        error: (err) => console.error('Error fetching groups:', err)
       });
   }
 
   fetchUsers() {
     this.http.get<any[]>(`${this.backendUrl}/users`, { withCredentials: true })
-      .subscribe(users => this.users = users, err => console.error(err));
+      .subscribe({
+        next: (users) => this.users = users,
+        error: (err) => console.error('Error fetching users:', err)
+      });
   }
 
   isAdmin(group: any) {
@@ -65,9 +69,12 @@ export class GroupComponent implements OnInit {
     };
 
     this.http.post(`${this.backendUrl}/groups`, newGroup, { withCredentials: true })
-      .subscribe(() => {
-        this.newGroupName = '';
-        this.fetchGroups();
+      .subscribe({
+        next: () => {
+          this.newGroupName = '';
+          this.fetchGroups();
+        },
+        error: (err) => console.error('Error creating group:', err)
       });
   }
 
@@ -91,7 +98,7 @@ export class GroupComponent implements OnInit {
           group.members.push(memberId); // update local copy
           this.newMember = '';
         },
-        error: (err) => console.error(err)
+        error: (err) => console.error('Error adding member:', err)
       });
   }
 
@@ -100,8 +107,8 @@ export class GroupComponent implements OnInit {
 
     this.http.put(`${this.backendUrl}/groups/${group._id}/remove-member`, { userId: memberId }, { withCredentials: true })
       .subscribe({
-        next: () => this.fetchGroups(), // refresh list after removal
-        error: (err) => console.error("Error removing member:", err)
+        next: () => this.fetchGroups(),
+        error: (err) => console.error('Error removing member:', err)
       });
   }
 
@@ -114,16 +121,18 @@ export class GroupComponent implements OnInit {
           group.groupAdmins.push(newAdmin);
           this.selectedNewAdmin = '';
         },
-        error: (err) => console.error(err)
+        error: (err) => console.error('Error making admin:', err)
       });
   }
 
   updateGroup(group: any) {
     this.http.put(`${this.backendUrl}/groups/${group._id}`, group, { withCredentials: true })
-      .subscribe(() => this.fetchGroups());
+      .subscribe({
+        next: () => this.fetchGroups(),
+        error: (err) => console.error('Error updating group:', err)
+      });
   }
 
-  // Navigate to the channels page for this group
   goToGroupChannels(groupId: string) {
     this.router.navigate(['/groups', groupId, 'channels']);
   }

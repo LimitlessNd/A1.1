@@ -1,6 +1,7 @@
 <div class="chat-container">
   <h3>Channel Chat</h3>
-  <div class="messages" style="height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
+
+  <div #messagesContainer class="messages" style="height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px;">
     <div *ngFor="let msg of messages">
       <span *ngIf="!msg.system"><strong>{{ msg.username }}:</strong> {{ msg.message }}</span>
       <em *ngIf="msg.system">{{ msg.message }}</em>

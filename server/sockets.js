@@ -1,59 +1,114 @@
-const { Server } = require("socket.io");
 const { insertMessage, getMessages } = require("./services/messages");
 
-module.exports = (server, sessionMiddleware) => {
-  const io = new Server(server, {
-    cors: { origin: "http://localhost:4200", methods: ["GET","POST"], credentials: true }
-  });
-
-  // Wrap session middleware for each socket
+module.exports = (io, sessionMiddleware) => {
+  // Share Express session with Socket.io
   io.use((socket, next) => {
     sessionMiddleware(socket.request, {}, () => {
-      if (!socket.request.session || !socket.request.session.user) {
-        return next(new Error("No session or user found"));
+      const session = socket.request.session;
+      if (!session || !session.user) {
+        console.warn("⚠️ No session found for socket", socket.id);
+        return next(new Error("No session found"));
       }
       next();
     });
   });
 
-  io.on("connection", (socket) => {
-    // now each socket gets its own user
-    const session = socket.request.session;
-    const username = session.user.username;
+  io.on("connection", async (socket) => {
+    const user = socket.request.session.user;
+    console.log("User connected:", user.username, socket.id);
 
-    console.log("User connected:", username, socket.id);
+    socket.currentChannel = null;
 
-    socket.on("joinChannel", async ({ channelId }) => {
+    // Join a channel
+    socket.on("joinChannel", async (channelId) => {
+      if (!channelId) return;
+
+      // Leave previous channel
+      if (socket.currentChannel) {
+        socket.leave(socket.currentChannel);
+        io.to(socket.currentChannel).emit("message", {
+          _id: null,
+          channelId: socket.currentChannel,
+          username: "System",
+          message: `${user.username} left the chat`,
+          createdAt: new Date(),
+          system: true
+        });
+      }
+
       socket.join(channelId);
+      socket.currentChannel = channelId;
 
-      const history = await getMessages(channelId);
-      socket.emit("history", history);
+      // Send chat history first
+      try {
+        const history = await getMessages(channelId);
+        socket.emit("history", history);
+      } catch (err) {
+        console.error("Failed to load history:", err);
+        socket.emit("history", []);
+      }
 
-      io.to(channelId).emit("chatMessage", {
-        system: true,
-        message: `${username} joined the channel`
+      // Broadcast join message after history is sent
+      io.to(channelId).emit("message", {
+        _id: null,
+        channelId,
+        username: "System",
+        message: `${user.username} joined the chat`,
+        createdAt: new Date(),
+        system: true
       });
     });
 
-    socket.on("chatMessage", async ({ channelId, message }) => {
-      if (!message) return;
+    // Leave a channel
+    socket.on("leaveChannel", () => {
+      if (socket.currentChannel) {
+        io.to(socket.currentChannel).emit("message", {
+          _id: null,
+          channelId: socket.currentChannel,
+          username: "System",
+          message: `${user.username} left the chat`,
+          createdAt: new Date(),
+          system: true
+        });
 
-      // Save to DB with correct username from session
-      await insertMessage(channelId, username, message);
-
-      io.to(channelId).emit("chatMessage", { username, message, system: false });
+        socket.leave(socket.currentChannel);
+        socket.currentChannel = null;
+      }
     });
 
-    socket.on("leaveChannel", ({ channelId }) => {
-      socket.leave(channelId);
-      io.to(channelId).emit("chatMessage", {
-        system: true,
-        message: `${username} left the channel`
-      });
+    // Send a message
+    socket.on("sendMessage", async (data) => {
+      const { channelId, message } = data;
+      if (!channelId || !message) return;
+
+      try {
+        const saved = await insertMessage(channelId, user.username, message);
+        const fullMessage = {
+          _id: saved.insertedId,
+          channelId,
+          username: user.username,
+          message,
+          createdAt: new Date(),
+        };
+        io.to(channelId).emit("message", fullMessage);
+      } catch (err) {
+        console.error("Failed to save message:", err);
+      }
     });
 
+    // Disconnect
     socket.on("disconnect", () => {
-      console.log("User disconnected:", username, socket.id);
+      if (socket.currentChannel) {
+        io.to(socket.currentChannel).emit("message", {
+          _id: null,
+          channelId: socket.currentChannel,
+          username: "System",
+          message: `${user.username} left the chat`,
+          createdAt: new Date(),
+          system: true
+        });
+      }
+      console.log("User disconnected:", user.username, socket.id);
     });
   });
 };
