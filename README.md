@@ -1,6 +1,5 @@
 # The Organisation of the Git Repository
 
-*(Image of what the structure looks like.)*
 
 ## How I used Git as part of my development solution
 
@@ -24,27 +23,27 @@ The users are stored in a user’s collection in the mongoDb server-side.
 
 ```json
 {
-  "_id": ObjectId,
+  "_id": "ObjectId",
   "username": "string",
   "email": "string",
   "password": "string", 
   "roles": ["USER"],
-  "groups": [ObjectId]  // References to groups the user belongs to
+  "groups": ["ObjectId"]  // References to groups the user belongs to
 }
 ```
 
    **Client-side –** within the client side the users are fetched to maintain currentlu logged in users and their role which will determine their access to certain features.
 
 ```json
-   {
-   `  `username: string,
+   {"
+     username: string,
 
-   `  `email: string,
+      email: string,
 
-   `  `roles: string[],
+      roles: string[],
 
-   `  `groups: string[]  // IDs of groups the user belongs to
-
+      groups: string[]  
+"
    }
 ```
 ### 2. Groups  
@@ -78,7 +77,7 @@ The channels are embedded objects within the groups to represent they belong to 
 "Channels": [
    {
 
-   "\_id": "68e4b00c25d9639046467f03",
+   "_id": "68e4b00c25d9639046467f03",
 
    "name": "General",
 
