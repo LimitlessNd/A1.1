@@ -3,7 +3,7 @@ const router = express.Router();
 const { ObjectId } = require("mongodb");
 const authGuard = require("../authGuard");
 const groupService = require("../services/groups");
-
+const { getDb } = require("../app");
 // ---------------------------
 // GET /api/groups
 // ---------------------------
@@ -210,5 +210,31 @@ router.put("/:id/add-admin", authGuard, async (req, res) => {
     res.status(500).json({ error: "Failed to add admin" });
   }
 });
+// --------------------------------------
+// Add Channel to Group
+// --------------------------------------
+router.put("/:groupId/add-channel", authGuard, async (req, res) => {
+  try {
+    const db = getDb();
+    const { name, description } = req.body;
+    const groupId = req.params.groupId;
+
+    const group = await db.collection("groups").findOne({ _id: new ObjectId(groupId) });
+    if (!group) return res.status(404).json({ message: "Group not found" });
+
+    const newChannel = { _id: new ObjectId(), name, description };
+    await db.collection("groups").updateOne(
+      { _id: new ObjectId(groupId) },
+      { $push: { channels: newChannel } }
+    );
+
+    const updatedGroup = await db.collection("groups").findOne({ _id: new ObjectId(groupId) });
+    res.json(updatedGroup); // send updated group back to Angular
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to add channel" });
+  }
+});
 
 module.exports = router;
+

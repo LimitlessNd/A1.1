@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
@@ -11,42 +12,41 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-    title = 'A1.1';  // add this property
   username: string = '';
-  roles: string[] = []; // ✅ Declare roles
+  roles: string[] = [];
   backendUrl = 'http://localhost:3000/api';
+  
 
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnInit() {
-    this.http.get<any>(`${this.backendUrl}/user/current`, { withCredentials: true })
-      .subscribe({
-        next: (user) => {
-          this.username = user.username;
-          this.roles = user.roles || [];
-        },
-        error: () => {
-          this.username = '';
-          this.roles = [];
-          this.router.navigate(['/login']);
-        }
-      });
-  }
+  this.loadUserFromStorage();
 
-  isLoggedIn(): boolean {
-    return !!this.username;
-  }
+  // Listen for storage events to update navbar immediately
+  window.addEventListener('storage', () => {
+    this.loadUserFromStorage();
+  });
+}
 
-  logout() {
-    this.http.post(`${this.backendUrl}/logout`, {}, { withCredentials: true })
-      .subscribe(() => {
-        this.username = '';
-        this.roles = [];
-        this.router.navigate(['/login']);
-      });
-  }
-
-  resetApp() {
-    // reset logic if needed
+loadUserFromStorage() {
+  const storedUser = localStorage.getItem('currentUser');
+  if (storedUser) {
+    const user = JSON.parse(storedUser);
+    this.username = user.username;
+    this.roles = user.roles || [];
+  } else {
+    this.username = '';
+    this.roles = [];
   }
 }
+
+isLoggedIn(): boolean {
+  return !!this.username;
+}
+
+logout() {
+  localStorage.removeItem('currentUser');
+  this.username = '';
+  this.roles = [];
+  this.router.navigate(['/login']);
+}}

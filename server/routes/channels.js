@@ -1,35 +1,36 @@
 const express = require("express");
 const router = express.Router();
+const { ObjectId } = require("mongodb");
 const authGuard = require("../authGuard");
-const channelService = require("../services/channels");
+const { getDb } = require("../app"); // make sure getDb is exported from app.js
 
 // Get channels for a group
 router.get("/:groupId", authGuard, async (req, res) => {
   try {
-    const channels = await channelService.getChannelsByGroup(req.params.groupId);
-    res.json(channels);
+    const db = getDb();
+    const group = await db.collection("groups").findOne({ _id: new ObjectId(req.params.groupId) });
+    res.json(group?.channels || []);
   } catch (err) {
     console.error("Error fetching channels:", err);
     res.status(500).json({ error: "Failed to fetch channels" });
   }
 });
 
-// Create a channel
-router.post("/:groupId", authGuard, async (req, res) => {
-  try {
-    const { name, description } = req.body;
-    const result = await channelService.createChannel(req.params.groupId, name, description);
-    res.json({ message: "Channel created", _id: result.insertedId });
-  } catch (err) {
-    console.error("Error creating channel:", err);
-    res.status(500).json({ error: "Failed to create channel" });
-  }
-});
-
 // Delete a channel
 router.delete("/:channelId", authGuard, async (req, res) => {
   try {
-    await channelService.deleteChannel(req.params.channelId);
+    const db = getDb();
+    const channelId = req.params.channelId;
+
+    const result = await db.collection("groups").updateOne(
+      { "channels._id": new ObjectId(channelId) },
+      { $pull: { channels: { _id: new ObjectId(channelId) } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Channel not found" });
+    }
+
     res.json({ message: "Channel deleted" });
   } catch (err) {
     console.error("Error deleting channel:", err);
