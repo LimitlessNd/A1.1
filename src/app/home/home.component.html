@@ -1,58 +1,42 @@
 <div class="container py-5">
   <!-- Hero Section -->
-  <div class="jumbotron bg-light p-5 rounded shadow-sm text-center mb-5">
-    <h1 class="display-4">Welcome to Chat App!</h1>
+  <div class="jumbotron p-5 rounded-4 shadow-lg text-center text-white" 
+       style="background: linear-gradient(135deg, #6a11cb, #2575fc);">
+    <h1 class="display-4 fw-bold">Welcome to Chat App!</h1>
     <p class="lead">Connect with your groups and friends in real-time.</p>
-    <a class="btn btn-primary btn-lg mt-3" [routerLink]="['/group']">Go to Groups</a>
+    <a class="btn btn-light btn-lg mt-3 fw-bold" [routerLink]="['/group']">Go to Groups</a>
   </div>
 
-<!-- Remove User Section (Only for SUPER_ADMIN) -->
-<div *ngIf="isSuperAdmin()" class="mt-5 p-4 bg-light rounded shadow-sm">
-  <h4>Remove User</h4>
-  <div class="row g-2 align-items-center">
-    <div class="col-md-6">
-      <select class="form-select" [(ngModel)]="selectedUserId">
-        <option value="" disabled selected>Select a user</option>
-        <option *ngFor="let user of users" [value]="user.id">{{ user.username }}</option>
-      </select>
-    </div>
-    <div class="col-md-3">
-      <button class="btn btn-danger w-100" (click)="removeUser()">Remove</button>
+  <!-- Remove User Section (Only for SUPER_ADMIN) -->
+  <div *ngIf="isSuperAdmin()" class="mt-5 p-4 bg-white rounded-4 shadow-sm border border-light">
+    <h4 class="mb-3">Remove User</h4>
+    <div class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <select class="form-select form-select-lg" [(ngModel)]="selectedUserId">
+          <option value="" disabled selected>Select a user</option>
+          <option *ngFor="let user of users" [value]="user.id">{{ user.username }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-danger btn-lg w-100 fw-bold" (click)="removeUser()">Remove</button>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- Info Cards -->
-  <div class="row g-4">
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <img src="https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&h=400&w=400" 
-             class="card-img-top" alt="Chat">
-        <div class="card-body">
-          <h5 class="card-title">Easy Chat</h5>
-          <p class="card-text">Quickly join your groups and start messaging your friends instantly.</p>
+  <div class="row g-4 mt-5">
+    <div class="col-md-4" *ngFor="let card of [
+        {title:'Easy Chat', text:'Quickly join your groups and start messaging your friends instantly.', img:'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&h=400&w=400'},
+        {title:'Collaborate', text:'Work together with your team or classmates in organized groups.', img:'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&h=400&w=400'},
+        {title:'Stay Connected', text:'Never miss out! Keep all your conversations and groups in one place.', img:'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&h=400&w=400'}
+      ]">
+      <div class="card shadow-lg h-100 border-0 rounded-4 overflow-hidden transform transition hover-scale" style="cursor:pointer;">
+        <div class="overflow-hidden">
+          <img [src]="card.img" class="card-img-top img-fluid rounded-top-4 transition hover-zoom" alt="{{card.title}}">
         </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <img src="https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&h=400&w=400" 
-             class="card-img-top" alt="Collaboration">
-        <div class="card-body">
-          <h5 class="card-title">Collaborate</h5>
-          <p class="card-text">Work together with your team or classmates in organized groups.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-4">
-      <div class="card shadow-sm h-100">
-        <img src="https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&h=400&w=400" 
-             class="card-img-top" alt="Communication">
-        <div class="card-body">
-          <h5 class="card-title">Stay Connected</h5>
-          <p class="card-text">Never miss out! Keep all your conversations and groups in one place.</p>
+        <div class="card-body text-center">
+          <h5 class="card-title fw-bold">{{card.title}}</h5>
+          <p class="card-text text-muted">{{card.text}}</p>
         </div>
       </div>
     </div>

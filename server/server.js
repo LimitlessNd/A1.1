@@ -24,10 +24,7 @@ const sessionMiddleware = session({
 // ---------------------------
 // Middleware
 // ---------------------------
-app.use(cors({
-  origin: "http://localhost:4200",
-  credentials: true
-}));
+app.use(cors({ origin: "http://localhost:4200", credentials: true }));
 app.use(express.json());
 app.use(sessionMiddleware);
 
@@ -56,13 +53,8 @@ app.post("/api/auth", async (req, res) => {
   return res.status(401).json({ valid: false, message: "Invalid credentials" });
 });
 
-app.get("/api/user/current", authGuard, (req, res) => {
-  res.json(req.session.user);
-});
-
-app.post("/api/logout", authGuard, (req, res) => {
-  req.session.destroy(() => res.json({ message: "Logged out" }));
-});
+app.get("/api/user/current", authGuard, (req, res) => res.json(req.session.user));
+app.post("/api/logout", authGuard, (req, res) => req.session.destroy(() => res.json({ message: "Logged out" })));
 
 // ---------------------------
 // Users
@@ -83,13 +75,9 @@ app.get("/api/users", authGuard, async (req, res) => {
 app.post("/api/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ success: false, message: "Please fill all fields" });
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ success: false, message: "Please fill all fields" });
-    }
-
-    const existingUser = await userService.getUserByEmail(email);
-    if (existingUser) return res.status(400).json({ success: false, message: "Email in use" });
+    if (await userService.getUserByEmail(email)) return res.status(400).json({ success: false, message: "Email in use" });
 
     const newUser = { username, email, password, roles: ["USER"], groups: [] };
     const result = await userService.addUser(newUser);
@@ -114,16 +102,12 @@ app.post("/api/register", async (req, res) => {
 // ---------------------------
 connectDB().then(() => {
   const server = http.createServer(app);
-
   const { Server } = require("socket.io");
   const io = new Server(server, {
     cors: { origin: "http://localhost:4200", methods: ["GET","POST"], credentials: true }
   });
 
-  // Share session with socket.io
   io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
-
-  // Pass sessionMiddleware to sockets.js
   initSockets(io, sessionMiddleware);
 
   server.listen(3000, () => console.log("✅ Server running on http://localhost:3000"));

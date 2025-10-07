@@ -94,6 +94,17 @@ async function removeMemberFromGroup(groupId, userId) {
 
   return { message: "User removed from group" };
 }
+async function makeGroupAdmin(groupId, userId) {
+  const db = getDb();
+  const groupObjectId = new ObjectId(groupId);
+
+  await db.collection('groups').updateOne(
+    { _id: groupObjectId, groupAdmins: { $ne: userId } },
+    { $push: { groupAdmins: userId } }
+  );
+
+  return { message: "User promoted to admin" };
+}
 
 module.exports = {
   getGroups,
@@ -105,5 +116,7 @@ module.exports = {
   isGroupAdmin,
   leaveGroup,
   addMemberToGroup,
-  removeMemberFromGroup
+  removeMemberFromGroup,
+  makeGroupAdmin
+
 };

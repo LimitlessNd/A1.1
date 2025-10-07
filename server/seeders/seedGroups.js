@@ -11,8 +11,8 @@ async function run() {
    const groups = [
   {
     name: "General Chat",
-    groupAdmins: ["2"],
-    members: ["1", "2"],
+    groupAdmins: [],
+    members: [],
     channels: [
       { id: "general_c1", name: "General", description: "General discussion" },
       { id: "general_c2", name: "Random", description: "Random topics" },
@@ -21,8 +21,8 @@ async function run() {
   },
   {
     name: "Project Team",
-    groupAdmins: ["2"],
-    members: ["2", "3"],
+    groupAdmins: [],
+    members: [],
     channels: [
       { id: "project_c1", name: "Project Updates", description: "Updates on the project" },
       { id: "project_c2", name: "Resources", description: "Shared files and links" }
