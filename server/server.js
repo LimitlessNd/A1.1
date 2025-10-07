@@ -33,7 +33,6 @@ app.use(sessionMiddleware);
 // ---------------------------
 app.use("/api/groups", groupRoutes);
 app.use("/api/channels", channelRoutes);
-
 // ---------------------------
 // Auth
 // ---------------------------
